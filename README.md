@@ -125,6 +125,18 @@ npm install && npm run build
 npm link
 ```
 
+```powershell
+# Windows (PowerShell)
+.\setup.ps1
+```
+
+```bash
+# macOS / Linux
+bash setup.sh
+```
+
+The setup script installs dependencies, builds the project, and registers `aiwb` so it works from any directory. **Restart your terminal after running it.**
+
 **Requirements:** Node.js >= 20 · At least one LLM provider API key
 
 ---
