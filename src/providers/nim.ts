@@ -10,7 +10,9 @@ export class NimProvider implements LLMProvider {
   private client(): OpenAI {
     const apiKey = getApiKey('nim');
     if (!apiKey)
-      throw new Error('NVIDIA NIM API key not configured. Run: aiwb config set nim.apiKey <key>');
+      throw new Error(
+        'NVIDIA NIM API key not configured. Run: lunatar config set nim.apiKey <key>',
+      );
     return new OpenAI({ apiKey, baseURL: NIM_BASE_URL });
   }
 

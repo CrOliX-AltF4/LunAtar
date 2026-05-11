@@ -14,8 +14,8 @@ export function agentsMd(name: string, type: ProjectType, stack: string): string
 
 const AGENTS_MD_TEMPLATE = `# AGENTS — {{name}}
 
-> aiwb multi-agent pipeline configuration.
-> \`aiwb run "<intent>"\` — primary development workflow.
+> lunatar multi-agent pipeline configuration.
+> \`lunatar run "<intent>"\` — primary development workflow.
 
 ## Roles & models
 
@@ -71,7 +71,7 @@ export function claudeMd(name: string, type: ProjectType, stack: string): string
 const CLAUDE_MD_TEMPLATE = `# CLAUDE.md — {{name}}
 
 > Claude Code intervention contract.
-> Primary workflow: \`aiwb run "<intent>"\` — use Claude Code only for what the pipeline cannot handle.
+> Primary workflow: \`lunatar run "<intent>"\` — use Claude Code only for what the pipeline cannot handle.
 
 ## When to use Claude Code
 
@@ -156,7 +156,7 @@ export function envExample(): string {
   return ENV_EXAMPLE;
 }
 
-const ENV_EXAMPLE = `# aiwb LLM providers — fill in at least one
+const ENV_EXAMPLE = `# lunatar LLM providers — fill in at least one
 
 GROQ_API_KEY=
 GEMINI_API_KEY=

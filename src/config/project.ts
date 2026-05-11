@@ -8,7 +8,7 @@ export const defaultConfig: ProjectConfig = {
 };
 
 export async function loadProjectConfig(cwd: string): Promise<ProjectConfig> {
-  const configPath = join(cwd, 'aiwb.config.json');
+  const configPath = join(cwd, 'lunatar.config.json');
   try {
     const raw = await readFile(configPath, 'utf-8');
     const value: unknown = JSON.parse(raw);

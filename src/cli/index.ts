@@ -14,9 +14,9 @@ import { initCommand } from './commands/init.js';
 const program = new Command();
 
 program
-  .name('aiwb')
-  .description('AI Dev Workbench — AI-powered development orchestration CLI')
-  .version('0.2.0');
+  .name('lunatar')
+  .description("Lun'Atar — multi-agent AI development pipeline CLI")
+  .version('0.3.0');
 
 // ─── run ──────────────────────────────────────────────────────────────────────
 
@@ -72,7 +72,7 @@ program
     // "list" needs no key; all others require one
     if (action !== 'list' && !key) {
       console.error(
-        `Key is required for action "${action}". Example: aiwb config ${action} groq.apiKey`,
+        `Key is required for action "${action}". Example: lunatar config ${action} groq.apiKey`,
       );
       process.exit(1);
     }
@@ -83,7 +83,7 @@ program
 
 program
   .command('init')
-  .description('Scaffold a new project with aiwb conventions')
+  .description('Scaffold a new project with lunatar conventions')
   .option('-n, --name <name>', 'project name (lowercase, hyphens)')
   .option('-t, --type <type>', 'project type: frontend | fullstack | cli | lib')
   .option('--skip-install', 'skip npm install after scaffolding')

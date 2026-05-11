@@ -8,7 +8,9 @@ export class ClaudeProvider implements LLMProvider {
   private client(): Anthropic {
     const apiKey = getApiKey('claude');
     if (!apiKey)
-      throw new Error('Anthropic API key not configured. Run: aiwb config set claude.apiKey <key>');
+      throw new Error(
+        'Anthropic API key not configured. Run: lunatar config set claude.apiKey <key>',
+      );
     return new Anthropic({ apiKey });
   }
 

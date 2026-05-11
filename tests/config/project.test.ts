@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { loadProjectConfig, defaultConfig } from '../../src/config/project.js';
 
 describe('loadProjectConfig', () => {
-  it('returns defaultConfig when no aiwb.config.json exists', async () => {
+  it('returns defaultConfig when no lunatar.config.json exists', async () => {
     const config = await loadProjectConfig('/nonexistent/path');
     expect(config).toEqual(defaultConfig);
   });
@@ -12,10 +12,10 @@ describe('loadProjectConfig', () => {
     const { join } = await import('node:path');
     const { tmpdir } = await import('node:os');
 
-    const dir = await mkdtemp(join(tmpdir(), 'aiwb-test-'));
+    const dir = await mkdtemp(join(tmpdir(), 'lunatar-test-'));
     try {
       await writeFile(
-        join(dir, 'aiwb.config.json'),
+        join(dir, 'lunatar.config.json'),
         JSON.stringify({ skills: { dev: ['typescript-strict'] } }),
       );
       const config = await loadProjectConfig(dir);
@@ -31,9 +31,9 @@ describe('loadProjectConfig', () => {
     const { join } = await import('node:path');
     const { tmpdir } = await import('node:os');
 
-    const dir = await mkdtemp(join(tmpdir(), 'aiwb-test-'));
+    const dir = await mkdtemp(join(tmpdir(), 'lunatar-test-'));
     try {
-      await writeFile(join(dir, 'aiwb.config.json'), 'not json');
+      await writeFile(join(dir, 'lunatar.config.json'), 'not json');
       const config = await loadProjectConfig(dir);
       expect(config).toEqual(defaultConfig);
     } finally {
@@ -46,10 +46,10 @@ describe('loadProjectConfig', () => {
     const { join } = await import('node:path');
     const { tmpdir } = await import('node:os');
 
-    const dir = await mkdtemp(join(tmpdir(), 'aiwb-test-'));
+    const dir = await mkdtemp(join(tmpdir(), 'lunatar-test-'));
     try {
       await writeFile(
-        join(dir, 'aiwb.config.json'),
+        join(dir, 'lunatar.config.json'),
         JSON.stringify({ models: { dev: 'llama-3.3-70b-versatile' } }),
       );
       const config = await loadProjectConfig(dir);
@@ -64,9 +64,9 @@ describe('loadProjectConfig', () => {
     const { join } = await import('node:path');
     const { tmpdir } = await import('node:os');
 
-    const dir = await mkdtemp(join(tmpdir(), 'aiwb-test-'));
+    const dir = await mkdtemp(join(tmpdir(), 'lunatar-test-'));
     try {
-      await writeFile(join(dir, 'aiwb.config.json'), '"a string"');
+      await writeFile(join(dir, 'lunatar.config.json'), '"a string"');
       const config = await loadProjectConfig(dir);
       expect(config).toEqual(defaultConfig);
     } finally {

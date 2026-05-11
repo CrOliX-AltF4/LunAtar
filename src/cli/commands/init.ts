@@ -87,7 +87,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
       process.stdout.write(`  npm install\n`);
     }
     process.stdout.write(`  cp .env.example .env   # add your API keys\n`);
-    process.stdout.write(`  aiwb run "your first feature"\n\n`);
+    process.stdout.write(`  lunatar run "your first feature"\n\n`);
 
     if (type !== 'fullstack') {
       process.stdout.write('GitHub: gh repo create ' + name + ' --public --source=. --push\n\n');

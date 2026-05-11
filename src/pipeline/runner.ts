@@ -21,7 +21,7 @@ export interface PipelinePreload {
 }
 
 // ─── Pipeline override ────────────────────────────────────────────────────────
-// TUI in-session selection that takes precedence over aiwb.config.json.
+// TUI in-session selection that takes precedence over lunatar.config.json.
 
 export interface PipelineOverride {
   skillIds?: string[];

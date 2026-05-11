@@ -5,7 +5,7 @@ import type { ProviderName } from '../types/index.js';
 
 // ─── Storage ──────────────────────────────────────────────────────────────────
 
-const CONFIG_DIR = join(homedir(), '.aiwb');
+const CONFIG_DIR = join(homedir(), '.lunatar');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 
 type ProviderConfig = Partial<Record<ProviderName, { apiKey: string }>>;
