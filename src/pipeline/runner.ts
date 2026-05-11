@@ -1,9 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { getProvider } from '../providers/registry.js';
 import { runPOAgent, runPlannerAgent, runDevAgent, runQAAgent } from '../agents/index.js';
-import type { PipelineRun, PipelineStep } from '../types/index.js';
+import type { PipelineRun, PipelineStep, AgentRole } from '../types/index.js';
 import type { POOutput, PlannerOutput, DevOutput, QAOutput } from '../agents/types.js';
 import { buildPlannerInput, buildDevInput, buildQAInput } from './mapper.js';
+import { loadProjectConfig } from '../config/project.js';
+import { SkillRegistry } from '../skills/registry.js';
+import { PluginRegistry } from '../plugins/registry.js';
+import type { Skill } from '../skills/types.js';
+import type { Plugin } from '../plugins/types.js';
 
 // ─── Pipeline preload ─────────────────────────────────────────────────────────
 // Allows callers to inject agent outputs before the pipeline runs.
@@ -57,6 +62,20 @@ export async function runPipeline(
   const ctx: PipelineContext = { ...(preload?.po ? { po: preload.po } : {}) };
   const wallStart = Date.now();
 
+  const projectConfig = await loadProjectConfig(process.cwd());
+  const skillRegistry = new SkillRegistry();
+  const pluginRegistry = new PluginRegistry();
+
+  const getActiveSkills = (role: AgentRole): Skill[] => {
+    const ids = [...(projectConfig.skills.all ?? []), ...(projectConfig.skills[role] ?? [])];
+    return ids.map((id) => skillRegistry.getById(id)).filter((s): s is Skill => s !== undefined);
+  };
+
+  const getActivePlugins = (role: AgentRole): Plugin[] => {
+    const ids = [...(projectConfig.plugins.all ?? []), ...(projectConfig.plugins[role] ?? [])];
+    return ids.map((id) => pluginRegistry.getById(id)).filter((p): p is Plugin => p !== undefined);
+  };
+
   const patch = (index: number, changes: Partial<PipelineStep>): void => {
     const current = run.steps[index];
     if (!current) return;
@@ -95,7 +114,15 @@ export async function runPipeline(
     try {
       switch (step.role) {
         case 'po': {
-          const { output, meta } = await runPOAgent({ intent }, { provider, modelId });
+          const { output, meta } = await runPOAgent(
+            { intent },
+            {
+              provider,
+              modelId,
+              ...(getActiveSkills('po').length > 0 ? { skills: getActiveSkills('po') } : {}),
+              ...(getActivePlugins('po').length > 0 ? { plugins: getActivePlugins('po') } : {}),
+            },
+          );
           ctx.po = output;
           patch(i, applyMeta('completed', output, meta));
           break;
@@ -106,6 +133,12 @@ export async function runPipeline(
           const { output, meta } = await runPlannerAgent(buildPlannerInput(ctx.po), {
             provider,
             modelId,
+            ...(getActiveSkills('planner').length > 0
+              ? { skills: getActiveSkills('planner') }
+              : {}),
+            ...(getActivePlugins('planner').length > 0
+              ? { plugins: getActivePlugins('planner') }
+              : {}),
           });
           ctx.planner = output;
           patch(i, applyMeta('completed', output, meta));
@@ -118,6 +151,8 @@ export async function runPipeline(
           const { output, meta } = await runDevAgent(buildDevInput(ctx.po, ctx.planner), {
             provider,
             modelId,
+            ...(getActiveSkills('dev').length > 0 ? { skills: getActiveSkills('dev') } : {}),
+            ...(getActivePlugins('dev').length > 0 ? { plugins: getActivePlugins('dev') } : {}),
           });
           ctx.dev = output;
           patch(i, applyMeta('completed', output, meta));
@@ -130,6 +165,8 @@ export async function runPipeline(
           const { output, meta } = await runQAAgent(buildQAInput(ctx.po, ctx.dev), {
             provider,
             modelId,
+            ...(getActiveSkills('qa').length > 0 ? { skills: getActiveSkills('qa') } : {}),
+            ...(getActivePlugins('qa').length > 0 ? { plugins: getActivePlugins('qa') } : {}),
           });
           ctx.qa = output;
           patch(i, applyMeta('completed', output, meta));
