@@ -20,6 +20,14 @@ export interface PipelinePreload {
   po?: POOutput;
 }
 
+// ─── Pipeline override ────────────────────────────────────────────────────────
+// TUI in-session selection that takes precedence over aiwb.config.json.
+
+export interface PipelineOverride {
+  skillIds?: string[];
+  pluginIds?: string[];
+}
+
 // ─── Internal pipeline context ────────────────────────────────────────────────
 // Carries typed agent outputs across steps without exposing them to other layers.
 
@@ -46,6 +54,7 @@ export async function runPipeline(
   steps: PipelineStep[],
   onUpdate?: (step: PipelineStep) => void,
   preload?: PipelinePreload,
+  override?: PipelineOverride,
 ): Promise<PipelineRun> {
   const run: PipelineRun = {
     id: randomUUID(),
@@ -90,11 +99,21 @@ export async function runPipeline(
   }
 
   const getActiveSkills = (role: AgentRole): Skill[] => {
+    if (override?.skillIds) {
+      return override.skillIds
+        .map((id) => skillRegistry.getById(id))
+        .filter((s): s is Skill => s !== undefined && (s.role === role || s.role === 'all'));
+    }
     const ids = [...(projectConfig.skills.all ?? []), ...(projectConfig.skills[role] ?? [])];
     return ids.map((id) => skillRegistry.getById(id)).filter((s): s is Skill => s !== undefined);
   };
 
   const getActivePlugins = (role: AgentRole): Plugin[] => {
+    if (override?.pluginIds) {
+      return override.pluginIds
+        .map((id) => pluginRegistry.getById(id))
+        .filter((p): p is Plugin => p !== undefined && (p.role === role || p.role === 'all'));
+    }
     const ids = [...(projectConfig.plugins.all ?? []), ...(projectConfig.plugins[role] ?? [])];
     return ids.map((id) => pluginRegistry.getById(id)).filter((p): p is Plugin => p !== undefined);
   };
