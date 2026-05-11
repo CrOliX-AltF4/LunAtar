@@ -1,5 +1,6 @@
 import type { AgentRole, ComplexityLevel, ProviderName } from '../types/index.js';
 import type { LLMProvider } from '../providers/types.js';
+import type { Skill } from '../skills/types.js';
 
 // ─── Agent options ────────────────────────────────────────────────────────────
 
@@ -8,6 +9,8 @@ export interface AgentOptions {
   provider: LLMProvider;
   /** Exact model ID to use (e.g. "llama-3.3-70b-versatile"). */
   modelId: string;
+  /** Active skills to inject into this agent's system prompt. */
+  skills?: Skill[];
 }
 
 // ─── Agent result ─────────────────────────────────────────────────────────────

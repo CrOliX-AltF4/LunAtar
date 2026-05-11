@@ -2,6 +2,7 @@ import { getModelById } from '../models/catalog.js';
 import type { AgentRole } from '../types/index.js';
 import type { LLMProvider, Message } from '../providers/types.js';
 import type { AgentMeta, AgentResult } from './types.js';
+import type { Skill } from '../skills/types.js';
 
 // ─── JSON extraction ──────────────────────────────────────────────────────────
 
@@ -74,7 +75,14 @@ export async function callAgent<T>(
   modelId: string,
   systemPrompt: string,
   userMessage: string,
+  options?: { skills?: Skill[] },
 ): Promise<AgentResult<T>> {
+  const activeSkills = options?.skills ?? [];
+  const enrichedPrompt =
+    activeSkills.length > 0
+      ? systemPrompt + '\n\n---\n\n' + activeSkills.map((s) => s.content).join('\n\n')
+      : systemPrompt;
+
   const messages: Message[] = [{ role: 'user', content: userMessage }];
 
   let totalInputTokens = 0;
@@ -93,7 +101,7 @@ export async function callAgent<T>(
     try {
       response = await provider.complete({
         modelId,
-        systemPrompt,
+        systemPrompt: enrichedPrompt,
         cacheSystemPrompt: true,
         messages,
         temperature: 0,
