@@ -44,7 +44,7 @@
   "author": "CrOliX-AltF4",
   "repository": {
     "type": "git",
-    "url": "https://github.com/CrOliX-AltF4/AI-Dev-Workbench-CLI.git"
+    "url": "git+https://github.com/CrOliX-AltF4/AI-Dev-Workbench-CLI.git"
   },
   "files": [
     "dist"
