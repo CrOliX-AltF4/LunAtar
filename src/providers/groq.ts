@@ -22,7 +22,15 @@ export class GroqProvider implements LLMProvider {
 
     const messages: Groq.Chat.ChatCompletionMessageParam[] = [];
     for (const m of request.messages) {
-      messages.push({ role: m.role, content: m.content });
+      if (m.role === 'tool') {
+        messages.push({
+          role: 'tool' as const,
+          tool_call_id: m.toolCallId,
+          content: m.content,
+        } as Groq.Chat.ChatCompletionMessageParam);
+      } else {
+        messages.push({ role: m.role, content: m.content });
+      }
     }
 
     const response = await client.chat.completions.create({

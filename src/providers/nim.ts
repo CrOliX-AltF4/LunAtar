@@ -29,7 +29,11 @@ export class NimProvider implements LLMProvider {
     }
 
     for (const m of request.messages) {
-      messages.push({ role: m.role, content: m.content });
+      if (m.role === 'tool') {
+        messages.push({ role: 'tool', tool_call_id: m.toolCallId, content: m.content });
+      } else {
+        messages.push({ role: m.role, content: m.content });
+      }
     }
 
     const response = await client.chat.completions.create({

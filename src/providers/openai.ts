@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { LLMProvider, CompletionRequest, CompletionResponse } from './types.js';
+import type { LLMProvider, CompletionRequest, CompletionResponse, ToolCall } from './types.js';
 import { getApiKey } from './config.js';
 
 export class OpenAIProvider implements LLMProvider {
@@ -27,7 +27,11 @@ export class OpenAIProvider implements LLMProvider {
     }
 
     for (const m of request.messages) {
-      messages.push({ role: m.role, content: m.content });
+      if (m.role === 'tool') {
+        messages.push({ role: 'tool', tool_call_id: m.toolCallId, content: m.content });
+      } else {
+        messages.push({ role: m.role, content: m.content });
+      }
     }
 
     const response = await client.chat.completions.create({
@@ -35,13 +39,42 @@ export class OpenAIProvider implements LLMProvider {
       messages,
       max_tokens: request.maxTokens ?? 4096,
       temperature: request.temperature ?? 0.7,
+      ...(request.tools && request.tools.length > 0
+        ? {
+            tools: request.tools.map((t) => ({
+              type: 'function' as const,
+              function: { name: t.name, description: t.description, parameters: t.inputSchema },
+            })),
+          }
+        : {}),
     });
 
     const choice = response.choices[0];
     if (!choice) throw new Error('OpenAI returned no choices');
 
+    const rawToolCalls = choice.message.tool_calls ?? [];
+    const toolCalls: ToolCall[] = rawToolCalls
+      .filter(
+        (
+          tc,
+        ): tc is typeof tc & { type: 'function'; function: { name: string; arguments: string } } =>
+          tc.type === 'function',
+      )
+      .map((tc) => ({
+        id: tc.id,
+        name: tc.function.name,
+        input: JSON.parse(tc.function.arguments) as unknown,
+      }));
+
     return {
       content: choice.message.content ?? '',
+      ...(toolCalls.length > 0 ? { toolCalls } : {}),
+      stopReason:
+        choice.finish_reason === 'tool_calls'
+          ? 'tool_use'
+          : choice.finish_reason === 'length'
+            ? 'max_tokens'
+            : 'end_turn',
       inputTokens: response.usage?.prompt_tokens ?? 0,
       outputTokens: response.usage?.completion_tokens ?? 0,
       durationMs: Date.now() - start,

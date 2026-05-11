@@ -1,8 +1,9 @@
 import { getModelById } from '../models/catalog.js';
 import type { AgentRole } from '../types/index.js';
-import type { LLMProvider, Message } from '../providers/types.js';
+import type { LLMProvider, Message, ToolResultMessage } from '../providers/types.js';
 import type { AgentMeta, AgentResult } from './types.js';
 import type { Skill } from '../skills/types.js';
+import type { Plugin, PluginContext } from '../plugins/types.js';
 
 // ─── JSON extraction ──────────────────────────────────────────────────────────
 
@@ -75,15 +76,21 @@ export async function callAgent<T>(
   modelId: string,
   systemPrompt: string,
   userMessage: string,
-  options?: { skills?: Skill[] },
+  options?: { skills?: Skill[]; plugins?: Plugin[]; pluginContext?: PluginContext },
 ): Promise<AgentResult<T>> {
   const activeSkills = options?.skills ?? [];
+  const activePlugins = options?.plugins ?? [];
+  const pluginContext: PluginContext = options?.pluginContext ?? {
+    runId: 'unknown',
+    outputDir: process.cwd(),
+    cwd: process.cwd(),
+  };
   const enrichedPrompt =
     activeSkills.length > 0
       ? systemPrompt + '\n\n---\n\n' + activeSkills.map((s) => s.content).join('\n\n')
       : systemPrompt;
 
-  const messages: Message[] = [{ role: 'user', content: userMessage }];
+  const messages: (Message | ToolResultMessage)[] = [{ role: 'user', content: userMessage }];
 
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
@@ -105,6 +112,7 @@ export async function callAgent<T>(
         cacheSystemPrompt: true,
         messages,
         temperature: 0,
+        ...(activePlugins.length > 0 ? { tools: activePlugins.map((p) => p.tool) } : {}),
       });
     } catch (err) {
       if (isRateLimit(err) && rateLimitAttempts < MAX_RATE_LIMIT_RETRIES) {
@@ -123,6 +131,27 @@ export async function callAgent<T>(
     totalCacheReadTokens += response.cacheReadTokens ?? 0;
     totalCacheCreationTokens += response.cacheCreationTokens ?? 0;
     totalDurationMs += response.durationMs;
+
+    // ── Tool use ────────────────────────────────────────────────────────────
+    if (response.stopReason === 'tool_use' && response.toolCalls && response.toolCalls.length > 0) {
+      messages.push({ role: 'assistant' as const, content: response.content || '' });
+
+      for (const tc of response.toolCalls) {
+        const plugin = activePlugins.find((p) => p.id === tc.name);
+        let result: string;
+        if (plugin) {
+          try {
+            result = await plugin.handler(tc.input, pluginContext);
+          } catch (err) {
+            result = `Tool error: ${String(err instanceof Error ? err.message : err)}`;
+          }
+        } else {
+          result = `Unknown tool: ${tc.name}`;
+        }
+        messages.push({ role: 'tool' as const, toolCallId: tc.id, content: result });
+      }
+      continue;
+    }
 
     // ── JSON extraction with corrective retry ───────────────────────────────
     try {
