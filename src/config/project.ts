@@ -11,13 +11,17 @@ export async function loadProjectConfig(cwd: string): Promise<ProjectConfig> {
   const configPath = join(cwd, 'aiwb.config.json');
   try {
     const raw = await readFile(configPath, 'utf-8');
-    const parsed = JSON.parse(raw) as Partial<ProjectConfig>;
+    const value: unknown = JSON.parse(raw);
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      return { ...defaultConfig };
+    }
+    const parsed = value as Partial<ProjectConfig>;
     return {
       skills: parsed.skills ?? {},
       plugins: parsed.plugins ?? {},
       ...(parsed.models ? { models: parsed.models } : {}),
     };
   } catch {
-    return defaultConfig;
+    return { ...defaultConfig };
   }
 }

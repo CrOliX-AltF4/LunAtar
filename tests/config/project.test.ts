@@ -40,4 +40,37 @@ describe('loadProjectConfig', () => {
       await rm(dir, { recursive: true });
     }
   });
+
+  it('parses models field when provided', async () => {
+    const { mkdtemp, writeFile, rm } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    const { tmpdir } = await import('node:os');
+
+    const dir = await mkdtemp(join(tmpdir(), 'aiwb-test-'));
+    try {
+      await writeFile(
+        join(dir, 'aiwb.config.json'),
+        JSON.stringify({ models: { dev: 'llama-3.3-70b-versatile' } }),
+      );
+      const config = await loadProjectConfig(dir);
+      expect(config.models?.dev).toBe('llama-3.3-70b-versatile');
+    } finally {
+      await rm(dir, { recursive: true });
+    }
+  });
+
+  it('returns defaultConfig when config is not a plain object', async () => {
+    const { mkdtemp, writeFile, rm } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    const { tmpdir } = await import('node:os');
+
+    const dir = await mkdtemp(join(tmpdir(), 'aiwb-test-'));
+    try {
+      await writeFile(join(dir, 'aiwb.config.json'), '"a string"');
+      const config = await loadProjectConfig(dir);
+      expect(config).toEqual(defaultConfig);
+    } finally {
+      await rm(dir, { recursive: true });
+    }
+  });
 });

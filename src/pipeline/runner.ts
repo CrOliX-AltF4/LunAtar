@@ -5,6 +5,7 @@ import type { PipelineRun, PipelineStep, AgentRole } from '../types/index.js';
 import type { POOutput, PlannerOutput, DevOutput, QAOutput } from '../agents/types.js';
 import { buildPlannerInput, buildDevInput, buildQAInput } from './mapper.js';
 import { loadProjectConfig } from '../config/project.js';
+import type { ProjectConfig } from '../config/types.js';
 import { SkillRegistry } from '../skills/registry.js';
 import { PluginRegistry } from '../plugins/registry.js';
 import type { Skill } from '../skills/types.js';
@@ -62,9 +63,31 @@ export async function runPipeline(
   const ctx: PipelineContext = { ...(preload?.po ? { po: preload.po } : {}) };
   const wallStart = Date.now();
 
-  const projectConfig = await loadProjectConfig(process.cwd());
-  const skillRegistry = new SkillRegistry();
-  const pluginRegistry = new PluginRegistry();
+  const patch = (index: number, changes: Partial<PipelineStep>): void => {
+    const current = run.steps[index];
+    if (!current) return;
+    const updated = { ...current, ...changes };
+    run.steps[index] = updated;
+    onUpdate?.(updated);
+  };
+
+  let projectConfig: ProjectConfig;
+  let skillRegistry: SkillRegistry;
+  let pluginRegistry: PluginRegistry;
+  try {
+    projectConfig = await loadProjectConfig(process.cwd());
+    skillRegistry = new SkillRegistry();
+    pluginRegistry = new PluginRegistry();
+  } catch (initErr) {
+    run.status = 'failed';
+    for (let i = 0; i < run.steps.length; i++) {
+      patch(i, {
+        status: 'failed',
+        error: `Pipeline init error: ${String(initErr instanceof Error ? initErr.message : initErr)}`,
+      });
+    }
+    return run;
+  }
 
   const getActiveSkills = (role: AgentRole): Skill[] => {
     const ids = [...(projectConfig.skills.all ?? []), ...(projectConfig.skills[role] ?? [])];
@@ -74,14 +97,6 @@ export async function runPipeline(
   const getActivePlugins = (role: AgentRole): Plugin[] => {
     const ids = [...(projectConfig.plugins.all ?? []), ...(projectConfig.plugins[role] ?? [])];
     return ids.map((id) => pluginRegistry.getById(id)).filter((p): p is Plugin => p !== undefined);
-  };
-
-  const patch = (index: number, changes: Partial<PipelineStep>): void => {
-    const current = run.steps[index];
-    if (!current) return;
-    const updated = { ...current, ...changes };
-    run.steps[index] = updated;
-    onUpdate?.(updated);
   };
 
   for (let i = 0; i < run.steps.length; i++) {
@@ -114,13 +129,15 @@ export async function runPipeline(
     try {
       switch (step.role) {
         case 'po': {
+          const poSkills = getActiveSkills('po');
+          const poPlugins = getActivePlugins('po');
           const { output, meta } = await runPOAgent(
             { intent },
             {
               provider,
               modelId,
-              ...(getActiveSkills('po').length > 0 ? { skills: getActiveSkills('po') } : {}),
-              ...(getActivePlugins('po').length > 0 ? { plugins: getActivePlugins('po') } : {}),
+              ...(poSkills.length > 0 ? { skills: poSkills } : {}),
+              ...(poPlugins.length > 0 ? { plugins: poPlugins } : {}),
             },
           );
           ctx.po = output;
@@ -130,15 +147,13 @@ export async function runPipeline(
 
         case 'planner': {
           if (!ctx.po) throw new Error('PO output is missing — cannot run Planner.');
+          const plannerSkills = getActiveSkills('planner');
+          const plannerPlugins = getActivePlugins('planner');
           const { output, meta } = await runPlannerAgent(buildPlannerInput(ctx.po), {
             provider,
             modelId,
-            ...(getActiveSkills('planner').length > 0
-              ? { skills: getActiveSkills('planner') }
-              : {}),
-            ...(getActivePlugins('planner').length > 0
-              ? { plugins: getActivePlugins('planner') }
-              : {}),
+            ...(plannerSkills.length > 0 ? { skills: plannerSkills } : {}),
+            ...(plannerPlugins.length > 0 ? { plugins: plannerPlugins } : {}),
           });
           ctx.planner = output;
           patch(i, applyMeta('completed', output, meta));
@@ -148,11 +163,13 @@ export async function runPipeline(
         case 'dev': {
           if (!ctx.po) throw new Error('PO output is missing — cannot run Dev.');
           if (!ctx.planner) throw new Error('Planner output is missing — cannot run Dev.');
+          const devSkills = getActiveSkills('dev');
+          const devPlugins = getActivePlugins('dev');
           const { output, meta } = await runDevAgent(buildDevInput(ctx.po, ctx.planner), {
             provider,
             modelId,
-            ...(getActiveSkills('dev').length > 0 ? { skills: getActiveSkills('dev') } : {}),
-            ...(getActivePlugins('dev').length > 0 ? { plugins: getActivePlugins('dev') } : {}),
+            ...(devSkills.length > 0 ? { skills: devSkills } : {}),
+            ...(devPlugins.length > 0 ? { plugins: devPlugins } : {}),
           });
           ctx.dev = output;
           patch(i, applyMeta('completed', output, meta));
@@ -162,11 +179,13 @@ export async function runPipeline(
         case 'qa': {
           if (!ctx.po) throw new Error('PO output is missing — cannot run QA.');
           if (!ctx.dev) throw new Error('Dev output is missing — cannot run QA.');
+          const qaSkills = getActiveSkills('qa');
+          const qaPlugins = getActivePlugins('qa');
           const { output, meta } = await runQAAgent(buildQAInput(ctx.po, ctx.dev), {
             provider,
             modelId,
-            ...(getActiveSkills('qa').length > 0 ? { skills: getActiveSkills('qa') } : {}),
-            ...(getActivePlugins('qa').length > 0 ? { plugins: getActivePlugins('qa') } : {}),
+            ...(qaSkills.length > 0 ? { skills: qaSkills } : {}),
+            ...(qaPlugins.length > 0 ? { plugins: qaPlugins } : {}),
           });
           ctx.qa = output;
           patch(i, applyMeta('completed', output, meta));
