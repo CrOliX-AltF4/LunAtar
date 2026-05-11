@@ -9,6 +9,7 @@ import { runCommand } from './commands/run.js';
 import { historyCommand } from './commands/history.js';
 import { setupCommand } from './commands/setup.js';
 import { configCommand } from './commands/config.js';
+import { initCommand } from './commands/init.js';
 
 const program = new Command();
 
@@ -76,6 +77,19 @@ program
       process.exit(1);
     }
     configCommand(action, key ?? '', value);
+  });
+
+// ─── init ─────────────────────────────────────────────────────────────────────
+
+program
+  .command('init')
+  .description('Scaffold a new project with aiwb conventions')
+  .option('-n, --name <name>', 'project name (lowercase, hyphens)')
+  .option('-t, --type <type>', 'project type: frontend | fullstack | cli | lib')
+  .option('--skip-install', 'skip npm install after scaffolding')
+  .option('--dir <path>', 'target directory (defaults to ./<name>)')
+  .action(async (opts: { name?: string; type?: string; skipInstall?: boolean; dir?: string }) => {
+    await initCommand(opts);
   });
 
 // ─── Default: open prompt screen ─────────────────────────────────────────────
