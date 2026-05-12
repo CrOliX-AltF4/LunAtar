@@ -46,5 +46,21 @@ jobs:
           tag_name: ${{ inputs.tag || github.ref_name }}
           generate_release_notes: true
 
+      - name: Debug npm auth
+        run: |
+          npm --version
+          npm config list
+          echo "OIDC token available: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL != '' }}"
+
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: |
+          npm config delete //registry.npmjs.org/:_authToken --location=project
+          npm publish --provenance --access public
+
+      - name: Upload npm logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-debug-logs
+          path: ~/.npm/_logs/
+          retention-days: 3
