@@ -18,6 +18,7 @@ import {
   huskyCommitMsg,
   tsconfigTest,
   vitestConfig,
+  lunatarConfig,
 } from './templates/core.js';
 import * as cliTemplates from './templates/cli.js';
 import * as frontendTemplates from './templates/frontend.js';
@@ -41,6 +42,7 @@ function coreFiles(name: string, type: ProjectType): ScaffoldFile[] {
     { path: '.husky/pre-commit', content: huskyPreCommit() },
     { path: '.husky/commit-msg', content: huskyCommitMsg() },
     { path: 'tsconfig.test.json', content: tsconfigTest() },
+    { path: 'lunatar.config.json', content: lunatarConfig() },
     { path: 'tests/.gitkeep', content: '' },
   ];
 }

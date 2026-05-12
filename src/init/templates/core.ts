@@ -290,3 +290,30 @@ ${excludeLine}    },
 });
 `;
 }
+
+// ─── lunatar.config.json ──────────────────────────────────────────────────────
+
+export function lunatarConfig(): string {
+  return JSON.stringify(
+    {
+      skills: {
+        all: ['typescript-strict', 'conventional-commits'],
+        po: [],
+        planner: [],
+        dev: [],
+        qa: [],
+        external: [],
+      },
+      plugins: {
+        all: [],
+        po: [],
+        planner: [],
+        dev: ['read-file', 'file-write'],
+        qa: [],
+        external: [],
+      },
+    },
+    null,
+    2,
+  );
+}
