@@ -49,5 +49,5 @@ jobs:
 
       - name: Publish to npm
         run: |
-          npm config delete //registry.npmjs.org/:_authToken --location=project
+          npm config delete //registry.npmjs.org/:_authToken --location=user
           npm publish --provenance --access public
