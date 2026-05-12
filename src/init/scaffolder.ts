@@ -23,6 +23,7 @@ import {
 } from './templates/core.js';
 import * as cliTemplates from './templates/cli.js';
 import * as frontendTemplates from './templates/frontend.js';
+import * as fullstackTemplates from './templates/fullstack.js';
 import * as libTemplates from './templates/lib.js';
 
 const exec = promisify(execFile);
@@ -83,10 +84,14 @@ function layerFiles(name: string, type: ProjectType): ScaffoldFile[] {
       ];
 
     case 'fullstack':
-      throw new Error(
-        'fullstack scaffold is not yet implemented.\n' +
-          'Hint: use `npx create-next-app@latest` then add AGENTS.md and CLAUDE.md manually.',
-      );
+      return [
+        { path: 'package.json', content: fullstackTemplates.packageJson(name) },
+        { path: 'tsconfig.json', content: fullstackTemplates.tsconfig() },
+        { path: 'next.config.ts', content: fullstackTemplates.nextConfig() },
+        { path: 'src/app/page.tsx', content: fullstackTemplates.appPage(name) },
+        { path: 'src/app/layout.tsx', content: fullstackTemplates.appLayout(name) },
+        { path: 'vitest.config.ts', content: vitestConfig() },
+      ];
   }
 }
 
