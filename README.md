@@ -2,7 +2,7 @@
 
 # Lun'Atar
 
-[![Version](https://img.shields.io/badge/version-0.3.0-8b0000?style=flat-square)](.)
+[![Version](https://img.shields.io/npm/v/lunatar?style=flat-square&color=8b0000)](https://www.npmjs.com/package/lunatar)
 [![License](https://img.shields.io/badge/license-MIT-333333?style=flat-square)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/CrOliX-AltF4/AI-Dev-Workbench-CLI/ci.yml?style=flat-square&label=CI)](https://github.com/CrOliX-AltF4/AI-Dev-Workbench-CLI/actions)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-555555?style=flat-square)](.)
@@ -16,19 +16,30 @@ _Drop an intent. Watch four agents argue about it. Get production-ready code._
 
 ## What is this?
 
-**Lun'Atar** is a multi-agent development pipeline CLI. You describe what you want to build — it routes that intent through four specialized AI agents, each on the model best suited for its role, and hands you structured, typed output.
-
-> [!NOTE]
-> "Atar" is the Zoroastrian deity of sacred fire. The forge metaphor isn't decoration — a pipeline that heats raw intent through multiple stages and casts it into code. Part of the [Lun'ecosystem](https://github.com/CrOliX-AltF4) alongside **LunArchive**.
+**Lun'Atar** is a multi-agent development pipeline CLI. You describe what you want to build — it routes that intent through four specialized AI agents (Product Owner → Planner → Developer → QA Engineer), each running on the model best suited for its role, and produces structured, typed output.
 
 The problem it solves: one LLM handling PO + architecture + code + QA in a single context loses quality fast. Context pollution, no cost control, no traceability. Lun'Atar splits each responsibility across dedicated agents, passes only the typed slice the next step needs, and keeps a full record of every run.
 
-| Without Lun'Atar                | With Lun'Atar                                              |
-| ------------------------------- | ---------------------------------------------------------- |
-| Context overload → quality loss | One model per role, selective context passing              |
-| No cost visibility              | Model Recommendation Engine scores cost, latency, task-fit |
-| Untraceable output              | Every run persisted, every step logged                     |
-| All-or-nothing execution        | Step-level status, per-step model override before run      |
+> [!NOTE]
+> "Atar" is the Zoroastrian deity of sacred fire. The forge metaphor: raw intent passes through four specialized stages and comes out as code. Part of the [Lun' ecosystem](https://github.com/CrOliX-AltF4) alongside **LunArchive**.
+
+---
+
+## Quick Start
+
+```bash
+npm install -g lunatar
+lunatar setup          # configure your first LLM provider
+lunatar                # open the interactive TUI
+```
+
+Or headless:
+
+```bash
+lunatar run "build a REST API to manage users"
+```
+
+**Requirements:** Node.js >= 20 · At least one LLM provider API key (Groq has a free tier)
 
 ---
 
@@ -70,12 +81,12 @@ The problem it solves: one LLM handling PO + architecture + code + QA in a singl
 
 ## Features
 
-**Pipeline & agents**
+**Pipeline & Agents**
 
 - Multi-agent pipeline: PO → Planner → Developer → QA, each role on its optimal model
-- Skills system — inject knowledge into agent prompts from a catalog (TypeScript conventions, React patterns, Laravel, Conventional Commits, etc.)
-- Plugins system — equip agents with tools: write files, read project context, web search, GitHub issues
-- `lunatar.config.json` — declare active skills and plugins per role for your project
+- **Skills system** — inject markdown knowledge into agent prompts from a catalog (TypeScript conventions, React patterns, Laravel, Conventional Commits, etc.)
+- **Plugins system** — equip agents with tools: write files, read project context, web search, GitHub issues
+- `lunatar.config.json` — declare active skills and plugins per role, per project
 - Retry + backoff — JSON parse failures trigger corrective multi-turn retry; rate limits use exponential backoff
 - Structured JSON output — agents never produce prose; noise eliminated at the source
 - Prompt caching — system prompts cached automatically on Claude
@@ -100,7 +111,7 @@ The problem it solves: one LLM handling PO + architecture + code + QA in a singl
 - Skip roles (`--skip po,qa`) — bypass any agent for external integration
 - Inject PO output (`--from-po`) — supply pre-computed PO JSON from a file or stdin
 - Dry run (`--dry`) — preview models, estimated tokens, and cost without any LLM call
-- `lunatar init` — scaffold a new project (cli · frontend · lib) with conventions pre-configured
+- `lunatar init` — scaffold a new project with conventions pre-configured
 - Run history — tabular view of past runs with verdict, cost, tokens
 
 > [!WARNING]
@@ -109,8 +120,6 @@ The problem it solves: one LLM handling PO + architecture + code + QA in a singl
 ---
 
 ## Installation
-
-**From npm (recommended once released):**
 
 ```bash
 npm install -g lunatar
@@ -121,23 +130,8 @@ npm install -g lunatar
 ```bash
 git clone https://github.com/CrOliX-AltF4/AI-Dev-Workbench-CLI.git
 cd AI-Dev-Workbench-CLI
-npm install && npm run build
-npm link
+npm install && npm run build && npm link
 ```
-
-```powershell
-# Windows (PowerShell)
-.\setup.ps1
-```
-
-```bash
-# macOS / Linux
-bash setup.sh
-```
-
-The setup script installs dependencies, builds the project, and registers `aiwb` so it works from any directory. **Restart your terminal after running it.**
-
-**Requirements:** Node.js >= 20 · At least one LLM provider API key
 
 ---
 
@@ -159,15 +153,14 @@ lunatar config set openai.apiKey  <your-key>
 lunatar config set nim.apiKey     <your-key>
 ```
 
-Or drop a `.env` in the directory where you run `lunatar`:
+Or use environment variables (useful for CI or per-project overrides):
 
 ```bash
-cp .env.example .env   # fill in at least one key
-lunatar
+GROQ_API_KEY=<key> lunatar run "..."
 ```
 
 > [!TIP]
-> Keys are stored in `~/.lunatar/config.json`. Environment variables always take precedence — useful for CI or per-project overrides.
+> Keys are stored in `~/.lunatar/config.json`. Environment variables always take precedence over the stored config.
 
 ---
 
@@ -182,16 +175,17 @@ lunatar run "create a REST API" --json           # headless: JSON to stdout
 lunatar run "intent" --from-po po.json           # inject pre-computed PO output
 lunatar history                                  # browse past runs
 lunatar config list                              # show configured providers
-lunatar init --name my-project --type cli        # scaffold a new project
+lunatar init                                     # scaffold a new project (interactive)
+lunatar init --name my-api --type cli            # scaffold without prompts
 ```
 
-**Natsume / external PO integration:**
+**External PO integration (e.g. Natsume):**
 
 ```bash
 echo '<po-json>' | lunatar run "intent" --skip po,qa --from-po - --json
 ```
 
-### TUI controls
+### TUI Controls
 
 **Pipeline screen:**
 
@@ -229,7 +223,7 @@ Every model is swappable via the TUI picker (`m`) before each run.
 
 ---
 
-## Project Config
+## Project Config (`lunatar.config.json`)
 
 Create `lunatar.config.json` at your project root to activate skills and plugins per role:
 
@@ -245,12 +239,28 @@ Create `lunatar.config.json` at your project root to activate skills and plugins
 }
 ```
 
-**Built-in skills:** `typescript-strict` · `react-css-modules` · `conventional-commits` · `project-context` · `laravel-conventions`
+**Available skills:** `typescript-strict` · `react-css-modules` · `conventional-commits` · `project-context` · `laravel-conventions`
 
-**Built-in plugins:** `file_write` · `read_file` · `web_search` · `github_create_issue`
+**Available plugins:** `file_write` · `read_file` · `web_search` · `github_create_issue`
 
 > [!NOTE]
 > Skills inject markdown knowledge into the agent's system prompt. Plugins give agents tool-use capabilities — `file_write` lets the Dev agent write files directly to `./output/<run-id>/` during the pipeline run.
+
+### `lunatar init` — Project Scaffolding
+
+```bash
+lunatar init                          # interactive: asks name + type
+lunatar init --name my-app --type cli
+```
+
+| Type        | What you get                         |
+| ----------- | ------------------------------------ |
+| `cli`       | TypeScript CLI with Commander.js     |
+| `lib`       | TypeScript library with ESM + Vitest |
+| `frontend`  | React + Vite starter                 |
+| `fullstack` | Next.js 15 starter with TypeScript   |
+
+All templates include `lunatar.config.json` pre-configured and a CI workflow targeting `master`.
 
 ---
 
@@ -283,6 +293,8 @@ cd AI-Dev-Workbench-CLI
 npm install
 npm run dev
 ```
+
+Branch from `master`, target PRs at `master`. Squash merge only.
 
 ---
 

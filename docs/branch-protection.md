@@ -7,47 +7,27 @@ These rules must be configured manually in **GitHub → Settings → Branches**.
 ## Branch strategy
 
 ```
-main        ← stable production, protected, releases only
-dev         ← integration branch, protected, all PRs target here
-feat/*      ← feature branches, created from dev
-fix/*       ← bug fix branches, created from dev
-chore/*     ← maintenance branches, created from dev
+master      ← stable production, protected, releases only
+feat/*      ← feature branches, created from master
+fix/*       ← bug fix branches, created from master
+chore/*     ← maintenance branches, created from master
+docs/*      ← documentation branches, created from master
 ```
 
----
-
-## `main` — production branch
-
-**Settings → Branches → Add rule → Branch name pattern: `main`**
-
-| Rule                                                   | Value                                    |
-| ------------------------------------------------------ | ---------------------------------------- |
-| Require a pull request before merging                  | ✅                                       |
-| Required approvals                                     | 1                                        |
-| Dismiss stale PR approvals when new commits are pushed | ✅                                       |
-| Require review from Code Owners                        | ✅                                       |
-| Require status checks to pass                          | ✅                                       |
-| Required checks                                        | `CI / CI — Node 20`, `CI / CI — Node 22` |
-| Require branches to be up to date before merging       | ✅                                       |
-| Require conversation resolution before merging         | ✅                                       |
-| Require linear history                                 | ✅                                       |
-| Do not allow bypassing the above settings              | ✅                                       |
-| Allow force pushes                                     | ❌                                       |
-| Allow deletions                                        | ❌                                       |
-
-> Merges to `main` should only come from `dev` via a release PR.
+PRs always target `master`. There is no integration branch — every feature merges directly. Version bumps in `package.json` trigger an auto-tag, which triggers the release workflow.
 
 ---
 
-## `dev` — integration branch
+## `master` — production branch
 
-**Settings → Branches → Add rule → Branch name pattern: `dev`**
+**Settings → Branches → Add rule → Branch name pattern: `master`**
 
 | Rule                                                   | Value                                                           |
 | ------------------------------------------------------ | --------------------------------------------------------------- |
 | Require a pull request before merging                  | ✅                                                              |
 | Required approvals                                     | 1                                                               |
 | Dismiss stale PR approvals when new commits are pushed | ✅                                                              |
+| Require review from Code Owners                        | ✅                                                              |
 | Require status checks to pass                          | ✅                                                              |
 | Required checks                                        | `CI / CI — Node 20`, `Validate PR title (Conventional Commits)` |
 | Require branches to be up to date before merging       | ✅                                                              |
@@ -66,6 +46,18 @@ chore/*     ← maintenance branches, created from dev
 | Allow squash merging               | ✅ — default commit message: PR title |
 | Allow rebase merging               | ❌                                    |
 | Automatically delete head branches | ✅                                    |
+
+---
+
+## Release flow
+
+```
+feat/my-feature  →  PR  →  master  →  auto-tag.yml detects version bump
+                                    →  tag v0.x.x
+                                    →  release.yml publishes to npm (OIDC)
+```
+
+Version bumps drive releases — bump `package.json` version in the PR that introduces the changes worth releasing.
 
 ---
 
