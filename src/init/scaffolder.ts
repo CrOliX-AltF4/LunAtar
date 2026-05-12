@@ -151,5 +151,18 @@ export async function scaffold(options: ScaffoldOptions): Promise<void> {
     },
   );
 
-  process.stdout.write('\n');
+  process.stdout.write(buildGuidance(name, type));
+}
+
+// ─── Post-scaffold guidance ───────────────────────────────────────────────────
+
+export function buildGuidance(name: string, type: ProjectType): string {
+  return [
+    `\n✓ Project "${name}" (${type}) ready.\n`,
+    `Next steps:`,
+    `  cd ${name}`,
+    `  lunatar setup          # configure LLM API keys`,
+    `  lunatar run "<intent>" # run your first pipeline`,
+    `\nEdit lunatar.config.json to activate skills and plugins.\n`,
+  ].join('\n');
 }

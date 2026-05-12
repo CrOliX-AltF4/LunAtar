@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ciYml, lunatarConfig, readmeMd } from '../../src/init/templates/core.js';
+import { buildGuidance } from '../../src/init/scaffolder.js';
 
 describe('ciYml', () => {
   it('targets master branch, not main or dev', () => {
@@ -35,5 +36,22 @@ describe('readmeMd', () => {
   it('includes lunatar run usage', () => {
     const readme = readmeMd('my-project', 'cli');
     expect(readme).toContain('lunatar run');
+  });
+});
+
+describe('buildGuidance', () => {
+  it('includes cd command with project name', () => {
+    const msg = buildGuidance('my-proj', 'cli');
+    expect(msg).toContain('cd my-proj');
+  });
+
+  it('mentions lunatar setup', () => {
+    const msg = buildGuidance('my-proj', 'cli');
+    expect(msg).toContain('lunatar setup');
+  });
+
+  it('mentions lunatar run', () => {
+    const msg = buildGuidance('my-proj', 'cli');
+    expect(msg).toContain('lunatar run');
   });
 });
