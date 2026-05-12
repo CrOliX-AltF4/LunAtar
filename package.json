@@ -44,7 +44,11 @@
   "author": "CrOliX-AltF4",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CrOliX-AltF4/AI-Dev-Workbench-CLI.git"
+    "url": "git+https://github.com/CrOliX-AltF4/LunAtar.git"
+  },
+  "homepage": "https://github.com/CrOliX-AltF4/LunAtar#readme",
+  "bugs": {
+    "url": "https://github.com/CrOliX-AltF4/LunAtar/issues"
   },
   "files": [
     "dist"
