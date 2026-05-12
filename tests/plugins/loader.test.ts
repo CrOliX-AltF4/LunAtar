@@ -3,6 +3,7 @@ import { writeFile, mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { loadExternalPlugin } from '../../src/plugins/loader.js';
+import { PluginRegistry } from '../../src/plugins/registry.js';
 
 let tmpDir: string;
 
@@ -46,5 +47,24 @@ describe('loadExternalPlugin', () => {
 
   it('throws on non-existent path', async () => {
     await expect(loadExternalPlugin(join(tmpDir, 'does-not-exist.mjs'))).rejects.toThrow();
+  });
+});
+
+describe('PluginRegistry with externals', () => {
+  it('includes externally loaded plugins in getAll()', () => {
+    const external = {
+      id: 'ext-plugin',
+      name: 'External',
+      role: 'all' as const,
+      tool: {
+        name: 'ext',
+        description: 'ext',
+        inputSchema: { type: 'object' as const, properties: {} },
+      },
+      handler: (_input: unknown, _context: { runId: string; outputDir: string; cwd: string }) =>
+        Promise.resolve('ok'),
+    };
+    const registry = new PluginRegistry([external]);
+    expect(registry.getAll().map((p) => p.id)).toContain('ext-plugin');
   });
 });

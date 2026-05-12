@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import type { Plugin } from './types.js';
 
 function isValidPlugin(value: unknown): value is Plugin {
@@ -37,7 +37,6 @@ export async function discoverNpmPlugins(cwd = process.cwd()): Promise<Plugin[]>
   const nodeModules = resolve(cwd, 'node_modules');
   if (!existsSync(nodeModules)) return [];
 
-  const { readdirSync } = await import('node:fs');
   const entries = readdirSync(nodeModules);
   const pluginPkgs = entries.filter((e) => e.startsWith('lunatar-plugin-'));
 
