@@ -31,15 +31,6 @@ export interface PipelineOverride {
   pluginIds?: string[];
 }
 
-// ─── Pipeline preload ─────────────────────────────────────────────────────────
-// Allows callers to inject agent outputs before the pipeline runs.
-// Used by --from-po: Natsume acts as PO and passes its output directly.
-
-export interface PipelinePreload {
-  /** Pre-computed PO output. Combined with --skip po to bypass the PO agent. */
-  po?: POOutput;
-}
-
 // ─── Internal pipeline context ────────────────────────────────────────────────
 // Carries typed agent outputs across steps without exposing them to other layers.
 

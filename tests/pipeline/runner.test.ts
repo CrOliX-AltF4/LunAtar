@@ -13,17 +13,20 @@ import type {
 
 vi.mock('../../src/providers/registry.js');
 vi.mock('../../src/agents/index.js');
+vi.mock('../../src/config/project.js');
 
 const { getProvider } = await import('../../src/providers/registry.js');
 const { runPOAgent, runPlannerAgent, runDevAgent, runQAAgent } =
   await import('../../src/agents/index.js');
 const { runPipeline } = await import('../../src/pipeline/runner.js');
+const { loadProjectConfig } = await import('../../src/config/project.js');
 
 const mockGetProvider = vi.mocked(getProvider);
 const mockRunPOAgent = vi.mocked(runPOAgent);
 const mockRunPlannerAgent = vi.mocked(runPlannerAgent);
 const mockRunDevAgent = vi.mocked(runDevAgent);
 const mockRunQAAgent = vi.mocked(runQAAgent);
+const mockLoadProjectConfig = vi.mocked(loadProjectConfig);
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -127,6 +130,12 @@ const STEPS: PipelineStep[] = [
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
+const DEFAULT_PROJECT_CONFIG = {
+  skills: { external: [] },
+  plugins: { external: [] },
+  providers: { fallback: [] as string[] },
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetProvider.mockReturnValue(makeProvider(true));
@@ -134,6 +143,7 @@ beforeEach(() => {
   mockRunPlannerAgent.mockResolvedValue(PLANNER_RESULT);
   mockRunDevAgent.mockResolvedValue(DEV_RESULT);
   mockRunQAAgent.mockResolvedValue(QA_RESULT);
+  mockLoadProjectConfig.mockResolvedValue(DEFAULT_PROJECT_CONFIG);
 });
 
 // ─── Happy path ───────────────────────────────────────────────────────────────
@@ -301,5 +311,50 @@ describe('runPipeline() — agent throws', () => {
     // Only PO completed — one step worth of cost/tokens
     expect(run.totalCostUsd).toBeCloseTo(0.0001, 8);
     expect(run.totalTokens).toBe(150);
+  });
+});
+
+// ─── Fallback provider retry ──────────────────────────────────────────────────
+
+describe('runPipeline() — fallback provider retry', () => {
+  it('retries on a retriable error and succeeds via the fallback provider', async () => {
+    // Primary provider call throws a retriable 429; fallback (openai) succeeds.
+    mockGetProvider
+      .mockReturnValueOnce({
+        name: 'groq',
+        isConfigured: () => true,
+        complete: vi.fn(),
+      })
+      .mockReturnValue(makeProvider(true));
+
+    mockRunPOAgent
+      .mockRejectedValueOnce(new Error('429 rate limit exceeded'))
+      .mockResolvedValue(PO_RESULT);
+
+    mockLoadProjectConfig.mockResolvedValue({
+      skills: { external: [] },
+      plugins: { external: [] },
+      providers: { fallback: ['openai'] },
+    });
+
+    const run = await runPipeline('Build a CLI', STEPS);
+
+    expect(run.status).toBe('completed');
+  });
+
+  it('fails when all providers in the fallback chain are exhausted', async () => {
+    // Both primary (groq) and fallback (openai) throw retriable errors.
+    mockGetProvider.mockReturnValue(makeProvider(true));
+    mockRunPOAgent.mockRejectedValue(new Error('429 rate limit exceeded'));
+
+    mockLoadProjectConfig.mockResolvedValue({
+      skills: { external: [] },
+      plugins: { external: [] },
+      providers: { fallback: ['openai'] },
+    });
+
+    const run = await runPipeline('Build a CLI', STEPS);
+
+    expect(run.status).toBe('failed');
   });
 });
