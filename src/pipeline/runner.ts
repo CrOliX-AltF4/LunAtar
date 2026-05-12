@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { getProvider } from '../providers/registry.js';
 import { runPOAgent, runPlannerAgent, runDevAgent, runQAAgent } from '../agents/index.js';
-import type { PipelineRun, PipelineStep, AgentRole } from '../types/index.js';
+import type { PipelineRun, PipelineStep, AgentRole, ProviderName } from '../types/index.js';
 import type { POOutput, PlannerOutput, DevOutput, QAOutput, AgentMeta } from '../agents/types.js';
 import { buildPlannerInput, buildDevInput, buildQAInput } from './mapper.js';
 import { loadProjectConfig } from '../config/project.js';
@@ -12,6 +12,7 @@ import type { Skill } from '../skills/types.js';
 import type { Plugin } from '../plugins/types.js';
 import { loadExternalSkill, discoverNpmSkills } from '../skills/loader.js';
 import { loadExternalPlugin, discoverNpmPlugins } from '../plugins/loader.js';
+import { isRetriableError } from './errors.js';
 
 // ─── Pipeline preload ─────────────────────────────────────────────────────────
 // Allows callers to inject agent outputs before the pipeline runs.
@@ -28,15 +29,6 @@ export interface PipelinePreload {
 export interface PipelineOverride {
   skillIds?: string[];
   pluginIds?: string[];
-}
-
-// ─── Pipeline preload ─────────────────────────────────────────────────────────
-// Allows callers to inject agent outputs before the pipeline runs.
-// Used by --from-po: Natsume acts as PO and passes its output directly.
-
-export interface PipelinePreload {
-  /** Pre-computed PO output. Combined with --skip po to bypass the PO agent. */
-  po?: POOutput;
 }
 
 // ─── Internal pipeline context ────────────────────────────────────────────────
@@ -150,91 +142,105 @@ export async function runPipeline(
       continue;
     }
 
-    const providerName = step.provider ?? 'groq';
     const modelId = step.modelId ?? '';
 
-    const provider = getProvider(providerName);
+    // Build the provider chain: primary first, then fallbacks (deduped, order preserved).
+    // Unknown provider names from config are silently skipped.
+    const rawFallbacks = (projectConfig.providers?.fallback ?? []).filter(isProviderName);
+    const fallbackChain: ProviderName[] = [step.provider ?? 'groq', ...rawFallbacks];
+    const providerChain = [...new Set(fallbackChain)];
 
-    if (!provider.isConfigured()) {
-      patch(i, {
-        status: 'failed',
-        error: `Provider "${providerName}" is not configured (missing API key).`,
-      });
-      skipRemaining(run, i + 1, patch);
-      run.status = 'failed';
-      break;
-    }
+    let lastError: unknown;
+    let succeeded = false;
 
-    patch(i, { status: 'running' });
+    for (const providerName of providerChain) {
+      const provider = getProvider(providerName);
 
-    try {
-      switch (step.role) {
-        case 'po': {
-          const poSkills = getActiveSkills('po');
-          const poPlugins = getActivePlugins('po');
-          const { output, meta } = await runPOAgent(
-            { intent },
-            {
+      if (!provider.isConfigured()) {
+        lastError = new Error(`Provider "${providerName}" is not configured (missing API key).`);
+        // Not retriable — skip remaining providers in chain immediately.
+        break;
+      }
+
+      patch(i, { status: 'running' });
+
+      try {
+        switch (step.role) {
+          case 'po': {
+            const poSkills = getActiveSkills('po');
+            const poPlugins = getActivePlugins('po');
+            const { output, meta } = await runPOAgent(
+              { intent },
+              {
+                provider,
+                modelId,
+                ...(poSkills.length > 0 ? { skills: poSkills } : {}),
+                ...(poPlugins.length > 0 ? { plugins: poPlugins } : {}),
+              },
+            );
+            ctx.po = output;
+            patch(i, applyMeta('completed', output, meta, poSkills));
+            break;
+          }
+
+          case 'planner': {
+            if (!ctx.po) throw new Error('PO output is missing — cannot run Planner.');
+            const plannerSkills = getActiveSkills('planner');
+            const plannerPlugins = getActivePlugins('planner');
+            const { output, meta } = await runPlannerAgent(buildPlannerInput(ctx.po), {
               provider,
               modelId,
-              ...(poSkills.length > 0 ? { skills: poSkills } : {}),
-              ...(poPlugins.length > 0 ? { plugins: poPlugins } : {}),
-            },
-          );
-          ctx.po = output;
-          patch(i, applyMeta('completed', output, meta, poSkills));
-          break;
-        }
+              ...(plannerSkills.length > 0 ? { skills: plannerSkills } : {}),
+              ...(plannerPlugins.length > 0 ? { plugins: plannerPlugins } : {}),
+            });
+            ctx.planner = output;
+            patch(i, applyMeta('completed', output, meta, plannerSkills));
+            break;
+          }
 
-        case 'planner': {
-          if (!ctx.po) throw new Error('PO output is missing — cannot run Planner.');
-          const plannerSkills = getActiveSkills('planner');
-          const plannerPlugins = getActivePlugins('planner');
-          const { output, meta } = await runPlannerAgent(buildPlannerInput(ctx.po), {
-            provider,
-            modelId,
-            ...(plannerSkills.length > 0 ? { skills: plannerSkills } : {}),
-            ...(plannerPlugins.length > 0 ? { plugins: plannerPlugins } : {}),
-          });
-          ctx.planner = output;
-          patch(i, applyMeta('completed', output, meta, plannerSkills));
-          break;
-        }
+          case 'dev': {
+            if (!ctx.po) throw new Error('PO output is missing — cannot run Dev.');
+            if (!ctx.planner) throw new Error('Planner output is missing — cannot run Dev.');
+            const devSkills = getActiveSkills('dev');
+            const devPlugins = getActivePlugins('dev');
+            const { output, meta } = await runDevAgent(buildDevInput(ctx.po, ctx.planner), {
+              provider,
+              modelId,
+              ...(devSkills.length > 0 ? { skills: devSkills } : {}),
+              ...(devPlugins.length > 0 ? { plugins: devPlugins } : {}),
+            });
+            ctx.dev = output;
+            patch(i, applyMeta('completed', output, meta, devSkills));
+            break;
+          }
 
-        case 'dev': {
-          if (!ctx.po) throw new Error('PO output is missing — cannot run Dev.');
-          if (!ctx.planner) throw new Error('Planner output is missing — cannot run Dev.');
-          const devSkills = getActiveSkills('dev');
-          const devPlugins = getActivePlugins('dev');
-          const { output, meta } = await runDevAgent(buildDevInput(ctx.po, ctx.planner), {
-            provider,
-            modelId,
-            ...(devSkills.length > 0 ? { skills: devSkills } : {}),
-            ...(devPlugins.length > 0 ? { plugins: devPlugins } : {}),
-          });
-          ctx.dev = output;
-          patch(i, applyMeta('completed', output, meta, devSkills));
-          break;
+          case 'qa': {
+            if (!ctx.po) throw new Error('PO output is missing — cannot run QA.');
+            if (!ctx.dev) throw new Error('Dev output is missing — cannot run QA.');
+            const qaSkills = getActiveSkills('qa');
+            const qaPlugins = getActivePlugins('qa');
+            const { output, meta } = await runQAAgent(buildQAInput(ctx.po, ctx.dev), {
+              provider,
+              modelId,
+              ...(qaSkills.length > 0 ? { skills: qaSkills } : {}),
+              ...(qaPlugins.length > 0 ? { plugins: qaPlugins } : {}),
+            });
+            ctx.qa = output;
+            patch(i, applyMeta('completed', output, meta, qaSkills));
+            break;
+          }
         }
-
-        case 'qa': {
-          if (!ctx.po) throw new Error('PO output is missing — cannot run QA.');
-          if (!ctx.dev) throw new Error('Dev output is missing — cannot run QA.');
-          const qaSkills = getActiveSkills('qa');
-          const qaPlugins = getActivePlugins('qa');
-          const { output, meta } = await runQAAgent(buildQAInput(ctx.po, ctx.dev), {
-            provider,
-            modelId,
-            ...(qaSkills.length > 0 ? { skills: qaSkills } : {}),
-            ...(qaPlugins.length > 0 ? { plugins: qaPlugins } : {}),
-          });
-          ctx.qa = output;
-          patch(i, applyMeta('completed', output, meta, qaSkills));
-          break;
-        }
+        succeeded = true;
+        break; // exit fallback chain on success
+      } catch (err) {
+        lastError = err;
+        if (!isRetriableError(err)) break; // non-retriable: stop trying further providers
+        // retriable: continue to next provider in chain
       }
-    } catch (err) {
-      patch(i, { status: 'failed', error: String(err) });
+    }
+
+    if (!succeeded) {
+      patch(i, { status: 'failed', error: String(lastError) });
       skipRemaining(run, i + 1, patch);
       run.status = 'failed';
       break;
@@ -284,4 +290,16 @@ function skipRemaining(
   for (let j = fromIndex; j < run.steps.length; j++) {
     patch(j, { status: 'skipped' });
   }
+}
+
+const PROVIDER_NAMES: ReadonlySet<string> = new Set<ProviderName>([
+  'groq',
+  'gemini',
+  'claude',
+  'openai',
+  'nim',
+]);
+
+function isProviderName(value: string): value is ProviderName {
+  return PROVIDER_NAMES.has(value);
 }

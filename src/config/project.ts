@@ -26,6 +26,9 @@ export async function loadProjectConfig(cwd: string): Promise<ProjectConfig> {
         external: parsed.plugins?.external ?? [],
       },
       ...(parsed.models ? { models: parsed.models } : {}),
+      providers: {
+        fallback: parsed.providers?.fallback ?? [],
+      },
     };
   } catch {
     return { ...defaultConfig };
