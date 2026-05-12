@@ -8,8 +8,13 @@ export interface PluginsConfig extends Partial<Record<AgentRole | 'all', string[
   external?: string[];
 }
 
+export interface ProvidersConfig {
+  fallback?: string[];
+}
+
 export interface ProjectConfig {
   skills: SkillsConfig;
   plugins: PluginsConfig;
   models?: Partial<Record<AgentRole, string>>;
+  providers?: ProvidersConfig;
 }

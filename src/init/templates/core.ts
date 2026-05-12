@@ -312,6 +312,9 @@ export function lunatarConfig(): string {
         qa: [],
         external: [],
       },
+      providers: {
+        fallback: [], // e.g. ["groq", "openai", "claude"]
+      },
     },
     null,
     2,
