@@ -13,7 +13,7 @@
 If you discover a security vulnerability, please report it via one of the following:
 
 - **GitHub Security Advisories** (preferred): [Report a vulnerability](../../security/advisories/new)
-- **Email**: security@<your-domain> _(replace with your actual contact)_
+- **Email**: loricworms23@gmail.com
 
 ### What to include
 
