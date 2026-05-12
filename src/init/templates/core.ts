@@ -317,3 +317,35 @@ export function lunatarConfig(): string {
     2,
   );
 }
+
+// ─── README.md ─────────────────────────────────────────────────────────────────
+
+export function readmeMd(name: string, type: ProjectType): string {
+  return render(README_TEMPLATE, { name, type });
+}
+
+const README_TEMPLATE = `# {{name}}
+
+> {{type}} project — scaffolded with [lunatar](https://github.com/CrOliX-AltF4/AI-Dev-Workbench-CLI)
+
+## Usage
+
+\`\`\`bash
+lunatar run "<describe what you want to build>"
+\`\`\`
+
+## Development
+
+\`\`\`bash
+npm install       # install dependencies
+npm run dev       # start in development mode
+npm run build     # compile to dist/
+npm test          # run tests
+npm run lint      # lint
+npm run typecheck # type check
+\`\`\`
+
+## Stack
+
+See \`AGENTS.md\` for agent roles and model configuration.
+`;

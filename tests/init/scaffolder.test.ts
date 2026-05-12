@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ciYml, lunatarConfig } from '../../src/init/templates/core.js';
+import { ciYml, lunatarConfig, readmeMd } from '../../src/init/templates/core.js';
 
 describe('ciYml', () => {
   it('targets master branch, not main or dev', () => {
@@ -23,5 +23,17 @@ describe('lunatarConfig', () => {
     const parsed = JSON.parse(lunatarConfig()) as { skills: { all: string[] } };
     expect(parsed.skills.all).toContain('typescript-strict');
     expect(parsed.skills.all).toContain('conventional-commits');
+  });
+});
+
+describe('readmeMd', () => {
+  it('includes the project name in the title', () => {
+    const readme = readmeMd('my-project', 'cli');
+    expect(readme).toContain('# my-project');
+  });
+
+  it('includes lunatar run usage', () => {
+    const readme = readmeMd('my-project', 'cli');
+    expect(readme).toContain('lunatar run');
   });
 });
