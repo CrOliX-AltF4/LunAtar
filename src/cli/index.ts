@@ -4,6 +4,7 @@
 // getApiKey() reads process.env, so dotenv vars are picked up automatically.
 import 'dotenv/config';
 
+import { createRequire } from 'node:module';
 import { Command } from 'commander';
 import { runCommand } from './commands/run.js';
 import { historyCommand } from './commands/history.js';
@@ -11,12 +12,15 @@ import { setupCommand } from './commands/setup.js';
 import { configCommand } from './commands/config.js';
 import { initCommand } from './commands/init.js';
 
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json') as { version: string };
+
 const program = new Command();
 
 program
   .name('lunatar')
   .description("Lun'Atar — multi-agent AI development pipeline CLI")
-  .version('0.3.0');
+  .version(version);
 
 // ─── run ──────────────────────────────────────────────────────────────────────
 
