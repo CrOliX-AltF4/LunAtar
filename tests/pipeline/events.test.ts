@@ -210,3 +210,25 @@ describe('runPipeline() — onEvent callback', () => {
     if (readFileEvt?.type === 'plugin_called') expect(readFileEvt.callCount).toBe(2);
   });
 });
+
+describe('runPipeline() — provider_switched event', () => {
+  it('emits provider_switched when fallback chain is used', async () => {
+    mockGetProvider.mockReturnValue(makeProvider());
+    mockRunPOAgent.mockRejectedValueOnce(new Error('429 rate limit')).mockResolvedValue(PO_RESULT);
+
+    mockLoadProjectConfig.mockResolvedValue({
+      ...DEFAULT_CONFIG,
+      providers: { fallback: ['openai'] },
+    });
+
+    const events: PipelineEvent[] = [];
+    await runPipeline('Build a CLI', STEPS, undefined, undefined, undefined, (e) => events.push(e));
+
+    const switchEvt = events.find((e) => e.type === 'provider_switched');
+    expect(switchEvt).toBeDefined();
+    if (switchEvt?.type === 'provider_switched') {
+      expect(switchEvt.from).toBe('groq');
+      expect(switchEvt.to).toBe('openai');
+    }
+  });
+});

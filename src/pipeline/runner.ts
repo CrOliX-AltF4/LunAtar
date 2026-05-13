@@ -156,13 +156,28 @@ export async function runPipeline(
     let lastError: unknown;
     let succeeded = false;
 
-    for (const providerName of providerChain) {
+    for (let attempt = 0; attempt < providerChain.length; attempt++) {
+      const providerName = providerChain[attempt];
+      if (!providerName) continue;
+
       const provider = getProvider(providerName);
 
       if (!provider.isConfigured()) {
         lastError = new Error(`Provider "${providerName}" is not configured (missing API key).`);
         // Not retriable — skip remaining providers in chain immediately.
         break;
+      }
+
+      if (attempt > 0) {
+        const prevProvider = providerChain[attempt - 1];
+        if (prevProvider) {
+          onEvent?.({
+            type: 'provider_switched',
+            stepId: step.id,
+            from: prevProvider,
+            to: providerName,
+          });
+        }
       }
 
       patch(i, { status: 'running' });
