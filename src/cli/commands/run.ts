@@ -7,6 +7,7 @@ import { getModelById } from '../../models/catalog.js';
 import * as orchestrator from '../../orchestrator/index.js';
 import type { POOutput } from '../../agents/types.js';
 import type { AgentRole, PipelineStep } from '../../types/index.js';
+import type { PipelineEvent } from '../../types/events.js';
 
 // ─── Shared role labels for progress output ───────────────────────────────────
 
@@ -202,14 +203,20 @@ async function headlessRun(
     }
   };
 
+  const onEvent = (event: PipelineEvent): void => {
+    process.stdout.write(JSON.stringify(event) + '\n');
+  };
+
   const preload = poOutput ? { po: poOutput } : undefined;
-  const run = await orchestrator.run(intent, steps, onUpdate, preload);
+  const run = await orchestrator.run(intent, steps, onUpdate, preload, undefined, onEvent);
 
   process.stderr.write(
     `\nDone — status: ${run.status} · $${run.totalCostUsd.toFixed(4)} · ${run.totalTokens.toLocaleString()} tok · ${(run.totalDurationMs / 1000).toFixed(1)}s\n`,
   );
 
-  process.stdout.write(JSON.stringify(run, null, 2) + '\n');
+  process.stdout.write(
+    JSON.stringify({ type: 'run_completed', run } satisfies PipelineEvent) + '\n',
+  );
 
   if (run.status === 'failed') {
     process.exit(1);
