@@ -3,6 +3,7 @@ import { render } from 'ink';
 import React from 'react';
 import { App } from '../../ui/App.js';
 import { buildDefaultSteps, parseSkipRoles } from '../../pipeline/steps.js';
+import type { PipelinePreload } from '../../pipeline/index.js';
 import { getModelById } from '../../models/catalog.js';
 import * as orchestrator from '../../orchestrator/index.js';
 import type { POOutput } from '../../agents/types.js';
@@ -217,11 +218,11 @@ async function headlessRun(
     process.stdout.write(JSON.stringify(event) + '\n');
   };
 
-  const preload = fromPoPayload
+  const preload: PipelinePreload | undefined = fromPoPayload
     ? {
         po: fromPoPayload.po,
-        cwd: fromPoPayload.cwd,
-        projectType: fromPoPayload.projectType,
+        ...(fromPoPayload.cwd ? { cwd: fromPoPayload.cwd } : {}),
+        ...(fromPoPayload.projectType ? { projectType: fromPoPayload.projectType } : {}),
       }
     : undefined;
 
