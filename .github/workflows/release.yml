@@ -34,8 +34,8 @@ jobs:
       - name: Install npm 11 via corepack
         run: |
           corepack enable
-          corepack prepare npm@latest --activate
-          npm --version
+          corepack prepare "npm@^11" --activate
+          echo "$(corepack home)/shims" >> "$GITHUB_PATH"
 
       - name: Install dependencies
         run: npm ci
@@ -54,6 +54,7 @@ jobs:
 
       - name: Debug npm auth
         run: |
+          which npm
           npm --version
           npm config list
           echo "OIDC URL: ${ACTIONS_ID_TOKEN_REQUEST_URL:-not set}"
