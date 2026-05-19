@@ -34,6 +34,8 @@ export interface PipelinePreload {
 export interface PipelineOverride {
   skillIds?: string[];
   pluginIds?: string[];
+  /** Abort the pipeline if accumulated cost exceeds this value (USD). */
+  maxCostUsd?: number;
 }
 
 // ─── Internal pipeline context ────────────────────────────────────────────────
@@ -283,6 +285,22 @@ export async function runPipeline(
       skipRemaining(run, i + 1, patch);
       run.status = 'failed';
       break;
+    }
+
+    // Budget cap: abort if accumulated cost exceeds the limit after this step
+    if (override?.maxCostUsd !== undefined) {
+      const accumulatedCost = run.steps
+        .slice(0, i + 1)
+        .reduce((sum, s) => sum + (s.costUsd ?? 0), 0);
+      if (accumulatedCost > override.maxCostUsd) {
+        patch(i, {
+          status: 'failed',
+          error: `budget exceeded: $${accumulatedCost.toFixed(4)} > limit $${override.maxCostUsd.toFixed(4)}`,
+        });
+        skipRemaining(run, i + 1, patch);
+        run.status = 'failed';
+        break;
+      }
     }
   }
 
