@@ -1,5 +1,5 @@
 import { getDefaultModel } from '../models/catalog.js';
-import type { AgentRole, PipelineStep, TaskType } from '../types/index.js';
+import type { AgentRole, PipelineStep, ProviderName, TaskType } from '../types/index.js';
 
 // ─── Agent sequence ───────────────────────────────────────────────────────────
 
@@ -50,4 +50,29 @@ export function parseSkipRoles(raw: string): Set<AgentRole> {
     );
   }
   return new Set(tokens as AgentRole[]);
+}
+
+// ─── Step overrides ───────────────────────────────────────────────────────────
+
+export interface StepOverrideOptions {
+  modelId?: string;
+  providerName?: ProviderName;
+}
+
+/**
+ * Returns a new steps array with the given model/provider applied to every
+ * non-skipped step. Skipped steps are returned unchanged.
+ */
+export function applyStepOverrides(
+  steps: PipelineStep[],
+  options: StepOverrideOptions,
+): PipelineStep[] {
+  return steps.map((step) => {
+    if (step.status === 'skipped') return step;
+    return {
+      ...step,
+      ...(options.modelId !== undefined ? { modelId: options.modelId } : {}),
+      ...(options.providerName !== undefined ? { provider: options.providerName } : {}),
+    };
+  });
 }

@@ -37,6 +37,12 @@ program
   )
   .option('--output <dir>', 'write Dev-generated files to this directory after the run')
   .option('--workspace', 'inject cwd, package.json and git status into the PO context')
+  .option('--model <id>', 'override model ID for all agents (e.g. gemini-2.5-pro)')
+  .option(
+    '--provider <name>',
+    'override provider for all agents: groq | gemini | claude | openai | nim',
+  )
+  .option('--budget-usd <max>', 'abort pipeline if total cost exceeds this USD amount', parseFloat)
   .action(
     async (
       intent?: string,
@@ -47,6 +53,9 @@ program
         fromPo?: string;
         output?: string;
         workspace?: boolean;
+        model?: string;
+        provider?: string;
+        budgetUsd?: number;
       },
     ) => {
       await runCommand({
@@ -57,6 +66,9 @@ program
         ...(opts?.fromPo ? { fromPo: opts.fromPo } : {}),
         ...(opts?.output ? { output: opts.output } : {}),
         ...(opts?.workspace ? { workspace: true } : {}),
+        ...(opts?.model ? { model: opts.model } : {}),
+        ...(opts?.provider ? { provider: opts.provider } : {}),
+        ...(opts?.budgetUsd !== undefined ? { budgetUsd: opts.budgetUsd } : {}),
       });
     },
   );

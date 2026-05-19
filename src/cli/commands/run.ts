@@ -2,17 +2,19 @@ import { readFile } from 'node:fs/promises';
 import { render } from 'ink';
 import React from 'react';
 import { App } from '../../ui/App.js';
-import { buildDefaultSteps, parseSkipRoles } from '../../pipeline/steps.js';
-import type { PipelinePreload } from '../../pipeline/index.js';
+import { buildDefaultSteps, parseSkipRoles, applyStepOverrides } from '../../pipeline/steps.js';
+import type { PipelinePreload, PipelineOverride } from '../../pipeline/index.js';
 import { getModelById } from '../../models/catalog.js';
 import * as orchestrator from '../../orchestrator/index.js';
 import type { POOutput, CodeFile } from '../../agents/types.js';
-import type { AgentRole, PipelineStep } from '../../types/index.js';
+import type { AgentRole, PipelineStep, ProviderName } from '../../types/index.js';
 import type { PipelineEvent } from '../../types/events.js';
 import { gatherWorkspaceContext } from '../workspace-context.js';
 import { writeOutputFiles } from '../output-writer.js';
 
 // ─── Shared role labels for progress output ───────────────────────────────────
+
+const VALID_PROVIDERS: ReadonlySet<string> = new Set(['groq', 'gemini', 'claude', 'openai', 'nim']);
 
 const ROLE_LABELS: Record<string, string> = {
   po: 'Product Owner',
@@ -31,6 +33,9 @@ interface RunOptions {
   fromPo?: string;
   output?: string;
   workspace?: boolean;
+  model?: string;
+  provider?: string;
+  budgetUsd?: number;
 }
 
 // ─── PO output loader ─────────────────────────────────────────────────────────
@@ -187,8 +192,17 @@ async function headlessRun(
   skipRoles: ReadonlySet<AgentRole>,
   fromPoPayload?: FromPoPayload,
   outputDir?: string,
+  pipelineOverride?: PipelineOverride,
+  model?: string,
+  provider?: string,
 ): Promise<void> {
-  const steps = buildDefaultSteps(skipRoles);
+  let steps = buildDefaultSteps(skipRoles);
+  if (model !== undefined || provider !== undefined) {
+    steps = applyStepOverrides(steps, {
+      ...(model !== undefined ? { modelId: model } : {}),
+      ...(provider !== undefined ? { providerName: provider as ProviderName } : {}),
+    });
+  }
   const total = steps.length;
 
   const skippedNames = steps
@@ -231,7 +245,7 @@ async function headlessRun(
       }
     : undefined;
 
-  const run = await orchestrator.run(intent, steps, onUpdate, preload, undefined, onEvent);
+  const run = await orchestrator.run(intent, steps, onUpdate, preload, pipelineOverride, onEvent);
 
   process.stderr.write(
     `\nDone — status: ${run.status} · $${run.totalCostUsd.toFixed(4)} · ${run.totalTokens.toLocaleString()} tok · ${(run.totalDurationMs / 1000).toFixed(1)}s\n`,
@@ -299,6 +313,25 @@ export async function runCommand(options: RunOptions): Promise<void> {
     resolvedIntent = resolvedIntent ? `${wsCtx}\n\nTask: ${resolvedIntent}` : wsCtx;
   }
 
+  // ── Validate --model and --provider ────────────────────────────────────────
+  if (options.model && !getModelById(options.model)) {
+    process.stderr.write(
+      `Error: unknown model "${options.model}". Run "lunatar catalog" to see available models.\n`,
+    );
+    process.exit(1);
+  }
+
+  if (options.provider && !VALID_PROVIDERS.has(options.provider)) {
+    process.stderr.write(
+      `Error: unknown provider "${options.provider}". Valid: ${[...VALID_PROVIDERS].join(', ')}\n`,
+    );
+    process.exit(1);
+  }
+
+  const pipelineOverride: PipelineOverride = {
+    ...(options.budgetUsd !== undefined ? { maxCostUsd: options.budgetUsd } : {}),
+  };
+
   // ── Dry run ─────────────────────────────────────────────────────────────────
   if (options.dry) {
     dryRun(resolvedIntent, skipRoles);
@@ -313,7 +346,15 @@ export async function runCommand(options: RunOptions): Promise<void> {
       );
       process.exit(1);
     }
-    await headlessRun(resolvedIntent, skipRoles, fromPoPayload, options.output);
+    await headlessRun(
+      resolvedIntent,
+      skipRoles,
+      fromPoPayload,
+      options.output,
+      pipelineOverride,
+      options.model,
+      options.provider,
+    );
     return;
   }
 
