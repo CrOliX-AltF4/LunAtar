@@ -1,8 +1,9 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { useSystemMetrics } from '../hooks/useSystemMetrics.js';
+import packageJson from '../../../package.json';
 
-const VERSION = '0.3.0';
+const { version } = packageJson;
 
 export function Header() {
   const { cpuUsagePercent, memUsedMb, memTotalMb } = useSystemMetrics();
@@ -13,11 +14,18 @@ export function Header() {
 
   return (
     <Box borderStyle="round" borderColor="gray" paddingX={1} justifyContent="space-between">
-      <Box gap={1}>
-        <Text color="cyan" bold>
-          ⚡ Lun'Atar
+      <Box gap={2}>
+        <Box gap={1}>
+          <Text color="cyan" bold>
+            Lun'Atar
+          </Text>
+          <Text color="gray" dimColor>
+            intent → code
+          </Text>
+        </Box>
+        <Text color="gray" dimColor>
+          v{version}
         </Text>
-        <Text color="gray">v{VERSION}</Text>
       </Box>
       <Box gap={2}>
         <Box gap={1}>

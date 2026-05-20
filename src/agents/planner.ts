@@ -49,6 +49,9 @@ export async function runPlannerAgent(
     options.modelId,
     SYSTEM_PROMPT,
     userMessage,
-    { ...(options.skills !== undefined && { skills: options.skills }) },
+    {
+      ...(options.skills !== undefined && { skills: options.skills }),
+      ...(options.plugins !== undefined && { plugins: options.plugins }),
+    },
   );
 }

@@ -38,5 +38,6 @@ export async function runPOAgent(
 
   return callAgent<POOutput>('po', options.provider, options.modelId, SYSTEM_PROMPT, userMessage, {
     ...(options.skills !== undefined && { skills: options.skills }),
+    ...(options.plugins !== undefined && { plugins: options.plugins }),
   });
 }

@@ -44,6 +44,7 @@ export async function runDevAgent(
     userMessage,
     {
       ...(options.skills !== undefined && { skills: options.skills }),
+      ...(options.plugins !== undefined && { plugins: options.plugins }),
     },
   );
 }

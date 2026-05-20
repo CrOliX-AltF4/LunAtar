@@ -48,5 +48,6 @@ export async function runQAAgent(
 
   return callAgent<QAOutput>('qa', options.provider, options.modelId, SYSTEM_PROMPT, userMessage, {
     ...(options.skills !== undefined && { skills: options.skills }),
+    ...(options.plugins !== undefined && { plugins: options.plugins }),
   });
 }

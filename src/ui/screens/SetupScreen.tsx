@@ -38,6 +38,13 @@ const PROVIDERS: ProviderInfo[] = [
     free: false,
     envVar: 'OPENAI_API_KEY',
   },
+  {
+    name: 'nim',
+    label: 'NIM',
+    url: 'build.nvidia.com',
+    free: true,
+    envVar: 'NIM_API_KEY',
+  },
 ];
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
