@@ -7,6 +7,7 @@ import { Footer } from '../components/Footer.js';
 import { MODEL_CATALOG } from '../../models/catalog.js';
 import { buildDefaultSteps } from '../../pipeline/steps.js';
 import type { PipelineRun, PipelineStep, AgentRole } from '../../types/index.js';
+import type { PipelineEvent } from '../../types/events.js';
 
 // ─── Model picker ─────────────────────────────────────────────────────────────
 
@@ -106,6 +107,8 @@ export function PipelineScreen({
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [showPicker, setShowPicker] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+  const [currentIteration, setCurrentIteration] = useState(1);
+  const [maxIterations, setMaxIterations] = useState(2);
 
   useInput((input, key) => {
     if (showPicker) return; // handled inside ModelPicker
@@ -135,6 +138,12 @@ export function PipelineScreen({
           },
           undefined,
           override,
+          (event: PipelineEvent) => {
+            if (event.type === 'iteration_started') {
+              setCurrentIteration(event.iteration);
+              setMaxIterations(event.maxIterations);
+            }
+          },
         )
         .then((run) => {
           onComplete?.(run);
@@ -180,6 +189,9 @@ export function PipelineScreen({
               focused={i === focusedIndex}
               stepNumber={i + 1}
               totalSteps={steps.length}
+              {...(step.role === 'dev' || step.role === 'qa'
+                ? { iteration: currentIteration, maxIterations }
+                : {})}
             />
           ))}
         </Box>

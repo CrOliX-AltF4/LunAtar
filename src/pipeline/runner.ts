@@ -36,6 +36,7 @@ export interface PipelineOverride {
   pluginIds?: string[];
   /** Abort the pipeline if accumulated cost exceeds this value (USD). */
   maxCostUsd?: number;
+  maxIterations?: number; // default: 2
 }
 
 // ─── Internal pipeline context ────────────────────────────────────────────────
@@ -140,176 +141,215 @@ export async function runPipeline(
     return ids.map((id) => pluginRegistry.getById(id)).filter((p): p is Plugin => p !== undefined);
   };
 
-  for (let i = 0; i < run.steps.length; i++) {
-    const step = run.steps[i];
-    if (!step) continue;
+  const MAX_ITERATIONS = override?.maxIterations ?? 2;
+  let iterationCount = 0;
+  let keepIterating = true;
 
-    // Steps pre-marked as skipped are bypassed — notify and move on.
-    if (step.status === 'skipped') {
-      onUpdate?.(step);
-      onEvent?.({ type: 'step_skipped', stepId: step.id, role: step.role });
-      continue;
-    }
+  const devIndex = run.steps.findIndex((s) => s.role === 'dev');
+  const qaIndex = run.steps.findIndex((s) => s.role === 'qa');
 
-    const modelId = step.modelId ?? '';
+  while (keepIterating) {
+    iterationCount++;
+    keepIterating = false;
 
-    // Build the provider chain: primary first, then fallbacks (deduped, order preserved).
-    // Unknown provider names from config are silently skipped.
-    const rawFallbacks = (projectConfig.providers?.fallback ?? []).filter(isProviderName);
-    const fallbackChain: ProviderName[] = [step.provider ?? 'groq', ...rawFallbacks];
-    const providerChain = [...new Set(fallbackChain)];
+    for (let i = 0; i < run.steps.length; i++) {
+      const step = run.steps[i];
+      if (!step) continue;
 
-    let lastError: unknown;
-    let succeeded = false;
-
-    for (let attempt = 0; attempt < providerChain.length; attempt++) {
-      const providerName = providerChain[attempt];
-      if (!providerName) continue;
-
-      const provider = getProvider(providerName);
-
-      if (!provider.isConfigured()) {
-        lastError = new Error(`Provider "${providerName}" is not configured (missing API key).`);
-        // Not retriable — skip remaining providers in chain immediately.
-        break;
-      }
-
-      if (attempt > 0) {
-        const prevProvider = providerChain[attempt - 1];
-        if (prevProvider) {
-          onEvent?.({
-            type: 'provider_switched',
-            stepId: step.id,
-            from: prevProvider,
-            to: providerName,
-          });
+      if (step.status === 'skipped') {
+        // Only emit on first iteration — subsequent iterations skip silently
+        if (iterationCount === 1) {
+          onUpdate?.(step);
+          onEvent?.({ type: 'step_skipped', stepId: step.id, role: step.role });
         }
+        continue;
       }
 
-      patch(i, { status: 'running' });
-      onEvent?.({
-        type: 'step_started',
-        stepId: step.id,
-        role: step.role,
-        provider: providerName,
-        modelId,
-      });
+      // PO and Planner already completed from a previous iteration — skip them
+      if (step.status === 'completed' && (step.role === 'po' || step.role === 'planner')) {
+        continue;
+      }
 
-      try {
-        switch (step.role) {
-          case 'po': {
-            const poSkills = getActiveSkills('po');
-            const poPlugins = getActivePlugins('po');
-            const { output, meta } = await runPOAgent(
-              { intent },
-              {
+      const modelId = step.modelId ?? '';
+      const rawFallbacks = (projectConfig.providers?.fallback ?? []).filter(isProviderName);
+      const fallbackChain: ProviderName[] = [step.provider ?? 'groq', ...rawFallbacks];
+      const providerChain = [...new Set(fallbackChain)];
+
+      let lastError: unknown;
+      let succeeded = false;
+
+      for (let attempt = 0; attempt < providerChain.length; attempt++) {
+        const providerName = providerChain[attempt];
+        if (!providerName) continue;
+
+        const provider = getProvider(providerName);
+
+        if (!provider.isConfigured()) {
+          lastError = new Error(`Provider "${providerName}" is not configured (missing API key).`);
+          break;
+        }
+
+        if (attempt > 0) {
+          const prevProvider = providerChain[attempt - 1];
+          if (prevProvider) {
+            onEvent?.({
+              type: 'provider_switched',
+              stepId: step.id,
+              from: prevProvider,
+              to: providerName,
+            });
+          }
+        }
+
+        patch(i, { status: 'running' });
+        onEvent?.({
+          type: 'step_started',
+          stepId: step.id,
+          role: step.role,
+          provider: providerName,
+          modelId,
+        });
+
+        try {
+          switch (step.role) {
+            case 'po': {
+              const poSkills = getActiveSkills('po');
+              const poPlugins = getActivePlugins('po');
+              const { output, meta } = await runPOAgent(
+                { intent },
+                {
+                  provider,
+                  modelId,
+                  ...(poSkills.length > 0 ? { skills: poSkills } : {}),
+                  ...(poPlugins.length > 0 ? { plugins: poPlugins } : {}),
+                },
+              );
+              ctx.po = output;
+              const poChanges = applyMeta('completed', output, meta, poSkills);
+              patch(i, poChanges);
+              emitStepCompleted(step, poChanges, onEvent);
+              break;
+            }
+            case 'planner': {
+              if (!ctx.po) throw new Error('PO output is missing — cannot run Planner.');
+              const plannerSkills = getActiveSkills('planner');
+              const plannerPlugins = getActivePlugins('planner');
+              const { output, meta } = await runPlannerAgent(buildPlannerInput(ctx.po), {
                 provider,
                 modelId,
-                ...(poSkills.length > 0 ? { skills: poSkills } : {}),
-                ...(poPlugins.length > 0 ? { plugins: poPlugins } : {}),
-              },
-            );
-            ctx.po = output;
-            const poChanges = applyMeta('completed', output, meta, poSkills);
-            patch(i, poChanges);
-            emitStepCompleted(step, poChanges, onEvent);
-            break;
-          }
+                ...(plannerSkills.length > 0 ? { skills: plannerSkills } : {}),
+                ...(plannerPlugins.length > 0 ? { plugins: plannerPlugins } : {}),
+              });
+              ctx.planner = output;
+              const plannerChanges = applyMeta('completed', output, meta, plannerSkills);
+              patch(i, plannerChanges);
+              emitStepCompleted(step, plannerChanges, onEvent);
+              break;
+            }
+            case 'dev': {
+              if (!ctx.po) throw new Error('PO output is missing — cannot run Dev.');
+              if (!ctx.planner) throw new Error('Planner output is missing — cannot run Dev.');
+              const devSkills = getActiveSkills('dev');
+              const devPlugins = getActivePlugins('dev');
+              const devInput = buildDevInput(ctx.po, ctx.planner, ctx.qa?.issues);
+              const { output, meta } = await runDevAgent(devInput, {
+                provider,
+                modelId,
+                ...(devSkills.length > 0 ? { skills: devSkills } : {}),
+                ...(devPlugins.length > 0 ? { plugins: devPlugins } : {}),
+              });
+              ctx.dev = output;
+              const devChanges = applyMeta('completed', output, meta, devSkills);
+              patch(i, devChanges);
+              emitStepCompleted(step, devChanges, onEvent);
+              break;
+            }
+            case 'qa': {
+              if (!ctx.po) throw new Error('PO output is missing — cannot run QA.');
+              if (!ctx.dev) throw new Error('Dev output is missing — cannot run QA.');
+              const qaSkills = getActiveSkills('qa');
+              const qaPlugins = getActivePlugins('qa');
+              const { output, meta } = await runQAAgent(buildQAInput(ctx.po, ctx.dev), {
+                provider,
+                modelId,
+                ...(qaSkills.length > 0 ? { skills: qaSkills } : {}),
+                ...(qaPlugins.length > 0 ? { plugins: qaPlugins } : {}),
+              });
+              ctx.qa = output;
+              const qaChanges = applyMeta('completed', output, meta, qaSkills);
+              patch(i, qaChanges);
+              emitStepCompleted(step, qaChanges, onEvent);
 
-          case 'planner': {
-            if (!ctx.po) throw new Error('PO output is missing — cannot run Planner.');
-            const plannerSkills = getActiveSkills('planner');
-            const plannerPlugins = getActivePlugins('planner');
-            const { output, meta } = await runPlannerAgent(buildPlannerInput(ctx.po), {
-              provider,
-              modelId,
-              ...(plannerSkills.length > 0 ? { skills: plannerSkills } : {}),
-              ...(plannerPlugins.length > 0 ? { plugins: plannerPlugins } : {}),
-            });
-            ctx.planner = output;
-            const plannerChanges = applyMeta('completed', output, meta, plannerSkills);
-            patch(i, plannerChanges);
-            emitStepCompleted(step, plannerChanges, onEvent);
-            break;
+              // Check if we should iterate
+              if (output.verdict !== 'pass' && iterationCount < MAX_ITERATIONS) {
+                const nextIteration = iterationCount + 1;
+                onEvent?.({
+                  type: 'iteration_started',
+                  iteration: nextIteration,
+                  maxIterations: MAX_ITERATIONS,
+                  issues: output.issues,
+                });
+                if (devIndex !== -1)
+                  patch(devIndex, { status: 'pending', output: undefined, error: undefined });
+                if (qaIndex !== -1)
+                  patch(qaIndex, { status: 'pending', output: undefined, error: undefined });
+                keepIterating = true;
+              }
+              break;
+            }
           }
-
-          case 'dev': {
-            if (!ctx.po) throw new Error('PO output is missing — cannot run Dev.');
-            if (!ctx.planner) throw new Error('Planner output is missing — cannot run Dev.');
-            const devSkills = getActiveSkills('dev');
-            const devPlugins = getActivePlugins('dev');
-            const { output, meta } = await runDevAgent(buildDevInput(ctx.po, ctx.planner), {
-              provider,
-              modelId,
-              ...(devSkills.length > 0 ? { skills: devSkills } : {}),
-              ...(devPlugins.length > 0 ? { plugins: devPlugins } : {}),
-            });
-            ctx.dev = output;
-            const devChanges = applyMeta('completed', output, meta, devSkills);
-            patch(i, devChanges);
-            emitStepCompleted(step, devChanges, onEvent);
-            break;
-          }
-
-          case 'qa': {
-            if (!ctx.po) throw new Error('PO output is missing — cannot run QA.');
-            if (!ctx.dev) throw new Error('Dev output is missing — cannot run QA.');
-            const qaSkills = getActiveSkills('qa');
-            const qaPlugins = getActivePlugins('qa');
-            const { output, meta } = await runQAAgent(buildQAInput(ctx.po, ctx.dev), {
-              provider,
-              modelId,
-              ...(qaSkills.length > 0 ? { skills: qaSkills } : {}),
-              ...(qaPlugins.length > 0 ? { plugins: qaPlugins } : {}),
-            });
-            ctx.qa = output;
-            const qaChanges = applyMeta('completed', output, meta, qaSkills);
-            patch(i, qaChanges);
-            emitStepCompleted(step, qaChanges, onEvent);
-            break;
-          }
+          succeeded = true;
+          break;
+        } catch (err) {
+          lastError = err;
+          if (!isRetriableError(err)) break;
         }
-        succeeded = true;
-        break; // exit fallback chain on success
-      } catch (err) {
-        lastError = err;
-        if (!isRetriableError(err)) break; // non-retriable: stop trying further providers
-        // retriable: continue to next provider in chain
       }
-    }
 
-    if (!succeeded) {
-      const errMsg = String(lastError instanceof Error ? lastError.message : lastError);
-      patch(i, { status: 'failed', error: errMsg });
-      onEvent?.({ type: 'step_failed', stepId: step.id, role: step.role, error: errMsg });
-      skipRemaining(run, i + 1, patch);
-      run.status = 'failed';
-      break;
-    }
-
-    // Budget cap: abort if accumulated cost exceeds the limit after this step
-    if (override?.maxCostUsd !== undefined) {
-      const accumulatedCost = run.steps
-        .slice(0, i + 1)
-        .reduce((sum, s) => sum + (s.costUsd ?? 0), 0);
-      if (accumulatedCost > override.maxCostUsd) {
-        patch(i, {
-          status: 'failed',
-          error: `budget exceeded: $${accumulatedCost.toFixed(4)} > limit $${override.maxCostUsd.toFixed(4)}`,
-        });
+      if (!succeeded) {
+        const errMsg = String(lastError instanceof Error ? lastError.message : lastError);
+        patch(i, { status: 'failed', error: errMsg });
+        onEvent?.({ type: 'step_failed', stepId: step.id, role: step.role, error: errMsg });
         skipRemaining(run, i + 1, patch);
         run.status = 'failed';
+        keepIterating = false;
         break;
+      }
+
+      if (override?.maxCostUsd !== undefined) {
+        const accumulatedCost = run.steps
+          .slice(0, i + 1)
+          .reduce((sum, s) => sum + (s.costUsd ?? 0), 0);
+        if (accumulatedCost > override.maxCostUsd) {
+          patch(i, {
+            status: 'failed',
+            error: `budget exceeded: $${accumulatedCost.toFixed(4)} > limit $${override.maxCostUsd.toFixed(4)}`,
+          });
+          skipRemaining(run, i + 1, patch);
+          run.status = 'failed';
+          keepIterating = false;
+          break;
+        }
+      }
+
+      // If iterating, break inner loop after QA so while restarts from Dev
+      if (keepIterating) break;
+    }
+
+    // If QA exhausted all iterations with non-pass, mark run as failed
+    if (!keepIterating && iterationCount >= MAX_ITERATIONS && run.status === 'running') {
+      if (ctx.qa?.verdict && ctx.qa.verdict !== 'pass') {
+        run.status = 'failed';
       }
     }
   }
 
+  // Aggregate totals and finalize status
   run.totalCostUsd = run.steps.reduce((sum, s) => sum + (s.costUsd ?? 0), 0);
   run.totalTokens = run.steps.reduce((sum, s) => sum + (s.tokensUsed ?? 0), 0);
   run.totalDurationMs = Date.now() - wallStart;
-
   if (run.status === 'running') run.status = 'completed';
-
+  if (iterationCount > 1) run.iterations = iterationCount;
   return run;
 }
 

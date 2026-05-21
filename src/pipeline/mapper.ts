@@ -5,6 +5,7 @@ import type {
   PlannerInput,
   DevInput,
   QAInput,
+  QAIssue,
 } from '../agents/types.js';
 
 // ─── Context mappers ──────────────────────────────────────────────────────────
@@ -21,12 +22,17 @@ export function buildPlannerInput(po: POOutput): PlannerInput {
   };
 }
 
-export function buildDevInput(po: POOutput, planner: PlannerOutput): DevInput {
+export function buildDevInput(
+  po: POOutput,
+  planner: PlannerOutput,
+  qaFeedback?: QAIssue[],
+): DevInput {
   return {
     clarifiedGoal: po.clarifiedGoal,
     architecture: planner.architecture,
     techStack: planner.techStack,
     tasks: planner.tasks,
+    ...(qaFeedback !== undefined ? { qaFeedback } : {}),
   };
 }
 

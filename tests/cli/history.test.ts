@@ -5,6 +5,9 @@ import type { QAOutput } from '../../src/agents/types.js';
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 vi.mock('../../src/storage/index.js');
+vi.mock('ink', () => ({
+  render: vi.fn().mockReturnValue({ waitUntilExit: () => Promise.resolve() }),
+}));
 
 const { listRuns } = await import('../../src/storage/index.js');
 const { historyCommand } = await import('../../src/cli/commands/history.js');
@@ -54,75 +57,68 @@ function makeRun(overrides: Partial<PipelineRun> & { qa?: QAOutput }): PipelineR
   };
 }
 
+let stdoutChunks: string[];
+
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  stdoutChunks = [];
+  vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+    stdoutChunks.push(String(chunk));
+    return true;
+  });
 });
+
+function getOutput(): string {
+  return stdoutChunks.join('');
+}
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-describe('historyCommand()', () => {
-  it('prints a message when no runs exist', async () => {
+describe('historyCommand({ json: true })', () => {
+  it('outputs an empty JSON array when no runs exist', async () => {
     mockListRuns.mockResolvedValue([]);
-    await historyCommand();
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('No pipeline runs'));
+    await historyCommand({ json: true });
+    const parsed = JSON.parse(getOutput()) as unknown[];
+    expect(parsed).toEqual([]);
   });
 
-  it('prints a table with headers when runs exist', async () => {
+  it('outputs a JSON array containing run objects with expected fields', async () => {
     mockListRuns.mockResolvedValue([makeRun({ qa: QA_PASS })]);
-    await historyCommand();
-    const output = vi
-      .mocked(console.log)
-      .mock.calls.map((c) => String(c[0]))
-      .join('\n');
-    expect(output).toContain('Date');
-    expect(output).toContain('Verdict');
-    expect(output).toContain('Intent');
-    expect(output).toContain('Cost');
-    expect(output).toContain('Tokens');
+    await historyCommand({ json: true });
+    const parsed = JSON.parse(getOutput()) as PipelineRun[];
+    expect(parsed).toHaveLength(1);
+    const [run] = parsed;
+    expect(run).toHaveProperty('createdAt');
+    expect(run).toHaveProperty('intent');
+    expect(run).toHaveProperty('totalCostUsd');
+    expect(run).toHaveProperty('totalTokens');
   });
 
-  it('shows PASS verdict for a passing QA run', async () => {
+  it('includes the run intent in JSON output for a passing QA run', async () => {
     mockListRuns.mockResolvedValue([makeRun({ qa: QA_PASS })]);
-    await historyCommand();
-    const output = vi
-      .mocked(console.log)
-      .mock.calls.map((c) => String(c[0]))
-      .join('\n');
-    expect(output).toContain('PASS');
+    await historyCommand({ json: true });
+    expect(getOutput()).toContain('Build a REST API');
   });
 
-  it('shows FAIL verdict for a failing QA run', async () => {
+  it('includes the run intent in JSON output for a failing QA run', async () => {
     mockListRuns.mockResolvedValue([makeRun({ qa: QA_FAIL })]);
-    await historyCommand();
-    const output = vi
-      .mocked(console.log)
-      .mock.calls.map((c) => String(c[0]))
-      .join('\n');
-    expect(output).toContain('FAIL');
+    await historyCommand({ json: true });
+    expect(getOutput()).toContain('Build a REST API');
   });
 
-  it('shows FAILED for a run with failed status', async () => {
+  it('includes a failed run in JSON output', async () => {
     mockListRuns.mockResolvedValue([makeRun({ status: 'failed', steps: [] })]);
-    await historyCommand();
-    const output = vi
-      .mocked(console.log)
-      .mock.calls.map((c) => String(c[0]))
-      .join('\n');
-    expect(output).toContain('FAILED');
+    await historyCommand({ json: true });
+    const parsed = JSON.parse(getOutput()) as PipelineRun[];
+    expect(parsed[0]?.status).toBe('failed');
   });
 
-  it('truncates long intents to 45 chars', async () => {
+  it('preserves the full intent in JSON output (no truncation)', async () => {
     const longIntent =
       'Build a very complex microservices architecture with event sourcing and CQRS patterns';
     mockListRuns.mockResolvedValue([makeRun({ intent: longIntent, qa: QA_PASS })]);
-    await historyCommand();
-    const output = vi
-      .mocked(console.log)
-      .mock.calls.map((c) => String(c[0]))
-      .join('\n');
-    expect(output).toContain('…');
-    expect(output).not.toContain(longIntent);
+    await historyCommand({ json: true });
+    expect(getOutput()).toContain(longIntent);
   });
 
   it('respects the limit parameter', async () => {
@@ -130,11 +126,17 @@ describe('historyCommand()', () => {
       makeRun({ id: `run-${String(i)}`, qa: QA_PASS }),
     );
     mockListRuns.mockResolvedValue(runs);
-    await historyCommand(2);
-    const output = vi
-      .mocked(console.log)
-      .mock.calls.map((c) => String(c[0]))
-      .join('\n');
-    expect(output).toContain('2 of 5 runs shown');
+    await historyCommand({ json: true, limit: 2 });
+    const parsed = JSON.parse(getOutput()) as unknown[];
+    expect(parsed).toHaveLength(2);
+  });
+});
+
+describe('historyCommand() — TUI mode', () => {
+  it('renders the TUI when json option is not set', async () => {
+    mockListRuns.mockResolvedValue([makeRun({ qa: QA_PASS })]);
+    const { render } = await import('ink');
+    await historyCommand({});
+    expect(render).toHaveBeenCalled();
   });
 });

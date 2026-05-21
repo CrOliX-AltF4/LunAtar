@@ -37,11 +37,11 @@ export interface PipelineStep {
   modelId?: string;
   provider?: ProviderName;
   input?: string;
-  output?: string;
+  output?: string | undefined;
   tokensUsed?: number;
   costUsd?: number;
   durationMs?: number;
-  error?: string;
+  error?: string | undefined;
   skillsTokens?: number; // estimated tokens from injected skills
   pluginsCalls?: Record<string, number>; // pluginId → call count
 }
@@ -55,6 +55,7 @@ export interface PipelineRun {
   totalTokens: number;
   totalDurationMs: number;
   status: 'running' | 'completed' | 'failed' | 'aborted';
+  iterations?: number; // undefined = single pass (no QA retry occurred)
 }
 
 // ─── Model Recommendation ────────────────────────────────────────────────────

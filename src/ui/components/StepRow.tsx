@@ -48,6 +48,8 @@ interface StepRowProps {
   /** 1-based position in the pipeline (e.g. 2 of 4). */
   stepNumber: number;
   totalSteps: number;
+  iteration?: number;
+  maxIterations?: number;
 }
 
 function formatDuration(ms: number): string {
@@ -58,7 +60,14 @@ function formatCost(usd: number): string {
   return usd < 0.001 ? `$${(usd * 1000).toFixed(3)}m` : `$${usd.toFixed(4)}`;
 }
 
-export function StepRow({ step, focused, stepNumber, totalSteps }: StepRowProps) {
+export function StepRow({
+  step,
+  focused,
+  stepNumber,
+  totalSteps,
+  iteration,
+  maxIterations,
+}: StepRowProps) {
   const isRunning = step.status === 'running';
   const iconColor = STATUS_COLORS[step.status];
   const model = step.modelId ? getModelById(step.modelId) : undefined;
@@ -91,6 +100,14 @@ export function StepRow({ step, focused, stepNumber, totalSteps }: StepRowProps)
         <Text bold color={step.status === 'pending' ? 'gray' : 'white'}>
           {ROLE_LABELS[step.role]}
         </Text>
+
+        {/* Iteration badge — only shown when retrying (iteration > 1) */}
+        {iteration !== undefined && iteration > 1 && maxIterations !== undefined && (
+          <Text color="yellow">
+            {' '}
+            iter {iteration}/{maxIterations}
+          </Text>
+        )}
 
         {/* Model badge */}
         <Box width={22}>

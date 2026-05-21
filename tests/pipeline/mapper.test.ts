@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildPlannerInput, buildDevInput, buildQAInput } from '../../src/pipeline/mapper.js';
-import type { POOutput, PlannerOutput, DevOutput } from '../../src/agents/types.js';
+import type { POOutput, PlannerOutput, DevOutput, QAIssue } from '../../src/agents/types.js';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -66,6 +66,36 @@ describe('buildDevInput()', () => {
     const input = buildDevInput(po, planner);
     expect(input).not.toHaveProperty('acceptanceCriteria');
     expect(input).not.toHaveProperty('constraints');
+  });
+});
+
+// ─── buildDevInput — with qaFeedback ──────────────────────────────────────────
+
+describe('buildDevInput() — with qaFeedback', () => {
+  const issues: QAIssue[] = [
+    { severity: 'critical', description: 'Missing null check', suggestion: 'Add guard' },
+    {
+      severity: 'major',
+      file: 'src/index.ts',
+      line: 10,
+      description: 'Unused import',
+      suggestion: 'Remove it',
+    },
+  ];
+
+  it('includes qaFeedback when provided', () => {
+    const input = buildDevInput(po, planner, issues);
+    expect(input.qaFeedback).toEqual(issues);
+  });
+
+  it('omits qaFeedback when not provided', () => {
+    const input = buildDevInput(po, planner);
+    expect(input).not.toHaveProperty('qaFeedback');
+  });
+
+  it('includes qaFeedback when empty array provided', () => {
+    const input = buildDevInput(po, planner, []);
+    expect(input.qaFeedback).toEqual([]);
   });
 });
 

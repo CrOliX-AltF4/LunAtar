@@ -12,6 +12,7 @@ import { setupCommand } from './commands/setup.js';
 import { configCommand } from './commands/config.js';
 import { initCommand } from './commands/init.js';
 import { catalogCommand } from './commands/catalog.js';
+import { watchCommand } from './commands/watch.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json') as { version: string };
@@ -43,6 +44,9 @@ program
     'override provider for all agents: groq | gemini | claude | openai | nim',
   )
   .option('--budget-usd <max>', 'abort pipeline if total cost exceeds this USD amount', parseFloat)
+  .option('--max-iterations <n>', 'max Dev→QA retry iterations on QA fail (default: 2)', (v) =>
+    parseInt(v, 10),
+  )
   .action(
     async (
       intent?: string,
@@ -56,6 +60,7 @@ program
         model?: string;
         provider?: string;
         budgetUsd?: number;
+        maxIterations?: number;
       },
     ) => {
       await runCommand({
@@ -69,6 +74,7 @@ program
         ...(opts?.model ? { model: opts.model } : {}),
         ...(opts?.provider ? { provider: opts.provider } : {}),
         ...(opts?.budgetUsd !== undefined ? { budgetUsd: opts.budgetUsd } : {}),
+        ...(opts?.maxIterations !== undefined ? { maxIterations: opts.maxIterations } : {}),
       });
     },
   );
@@ -77,9 +83,16 @@ program
 
 program
   .command('history')
-  .description('List previous pipeline runs')
-  .action(async () => {
-    await historyCommand();
+  .description(
+    'List previous pipeline runs (interactive TUI; use --json for machine-readable output)',
+  )
+  .option('--json', 'output runs as JSON array instead of launching the TUI')
+  .option('--limit <n>', 'max runs to show in --json mode (default: 20)', (v) => parseInt(v, 10))
+  .action(async (opts?: { json?: boolean; limit?: number }) => {
+    await historyCommand({
+      ...(opts?.json ? { json: true } : {}),
+      ...(opts?.limit !== undefined ? { limit: opts.limit } : {}),
+    });
   });
 
 // ─── setup ────────────────────────────────────────────────────────────────────
@@ -127,6 +140,20 @@ program
   .description('List all built-in and installed skills and plugins')
   .action(() => {
     catalogCommand();
+  });
+
+// ─── watch ────────────────────────────────────────────────────────────────────
+
+program
+  .command('watch <path>')
+  .description('Watch a path and re-run the pipeline automatically on file changes')
+  .option('--intent <file>', 'read intent from this file on each run')
+  .option('--debounce <ms>', 'debounce delay in ms (default: 500)', (v) => parseInt(v, 10))
+  .action(async (watchPath: string, opts?: { intent?: string; debounce?: number }) => {
+    await watchCommand(watchPath, {
+      ...(opts?.intent !== undefined ? { intent: opts.intent } : {}),
+      ...(opts?.debounce !== undefined ? { debounce: opts.debounce } : {}),
+    });
   });
 
 // ─── Default: open prompt screen ─────────────────────────────────────────────

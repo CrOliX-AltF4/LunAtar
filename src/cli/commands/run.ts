@@ -36,6 +36,7 @@ interface RunOptions {
   model?: string;
   provider?: string;
   budgetUsd?: number;
+  maxIterations?: number;
 }
 
 // ─── PO output loader ─────────────────────────────────────────────────────────
@@ -330,6 +331,7 @@ export async function runCommand(options: RunOptions): Promise<void> {
 
   const pipelineOverride: PipelineOverride = {
     ...(options.budgetUsd !== undefined ? { maxCostUsd: options.budgetUsd } : {}),
+    ...(options.maxIterations !== undefined ? { maxIterations: options.maxIterations } : {}),
   };
 
   // ── Dry run ─────────────────────────────────────────────────────────────────

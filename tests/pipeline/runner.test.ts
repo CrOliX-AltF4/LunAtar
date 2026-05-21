@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { LLMProvider } from '../../src/providers/types.js';
 import type { PipelineStep } from '../../src/types/index.js';
+import type { PipelineEvent } from '../../src/types/events.js';
 import type {
   AgentResult,
   POOutput,
@@ -356,5 +357,94 @@ describe('runPipeline() — fallback provider retry', () => {
     const run = await runPipeline('Build a CLI', STEPS);
 
     expect(run.status).toBe('failed');
+  });
+});
+
+// ─── Iteration loop ───────────────────────────────────────────────────────────
+
+const QA_FAIL_RESULT: AgentResult<QAOutput> = {
+  output: {
+    verdict: 'fail',
+    score: 30,
+    issues: [{ severity: 'critical', description: 'Missing tests', suggestion: 'Add tests' }],
+    suggestions: [],
+    requirementsCoverage: {},
+  },
+  meta: { ...BASE_META, role: 'qa' },
+};
+
+const QA_PASS_RESULT: AgentResult<QAOutput> = {
+  output: { verdict: 'pass', score: 90, issues: [], suggestions: [], requirementsCoverage: {} },
+  meta: { ...BASE_META, role: 'qa' },
+};
+
+describe('runPipeline() — iteration loop', () => {
+  beforeEach(() => {
+    mockGetProvider.mockReturnValue(makeProvider());
+    mockRunPOAgent.mockResolvedValue(PO_RESULT);
+    mockRunPlannerAgent.mockResolvedValue(PLANNER_RESULT);
+    mockLoadProjectConfig.mockResolvedValue({
+      skills: { external: [] },
+      plugins: { external: [] },
+    });
+  });
+
+  it('re-runs Dev and QA when verdict is fail and iterations remain', async () => {
+    mockRunDevAgent.mockResolvedValue(DEV_RESULT);
+    mockRunQAAgent.mockResolvedValueOnce(QA_FAIL_RESULT).mockResolvedValueOnce(QA_PASS_RESULT);
+
+    const run = await runPipeline('Build a CLI', STEPS, undefined, undefined, { maxIterations: 2 });
+
+    expect(run.status).toBe('completed');
+    expect(mockRunDevAgent).toHaveBeenCalledTimes(2);
+    expect(mockRunQAAgent).toHaveBeenCalledTimes(2);
+    expect(run.iterations).toBe(2);
+  });
+
+  it('passes QA issues to Dev on iteration 2', async () => {
+    mockRunDevAgent.mockResolvedValue(DEV_RESULT);
+    mockRunQAAgent.mockResolvedValueOnce(QA_FAIL_RESULT).mockResolvedValueOnce(QA_PASS_RESULT);
+
+    await runPipeline('Build a CLI', STEPS, undefined, undefined, { maxIterations: 2 });
+
+    const secondDevCall = mockRunDevAgent.mock.calls[1]?.[0];
+    expect(secondDevCall).toHaveProperty('qaFeedback');
+    expect(secondDevCall?.qaFeedback).toEqual(QA_FAIL_RESULT.output.issues);
+  });
+
+  it('stops after maxIterations even if QA keeps failing', async () => {
+    mockRunDevAgent.mockResolvedValue(DEV_RESULT);
+    mockRunQAAgent.mockResolvedValue(QA_FAIL_RESULT);
+
+    const run = await runPipeline('Build a CLI', STEPS, undefined, undefined, { maxIterations: 3 });
+
+    expect(run.status).toBe('failed');
+    expect(mockRunDevAgent).toHaveBeenCalledTimes(3);
+    expect(mockRunQAAgent).toHaveBeenCalledTimes(3);
+    expect(run.iterations).toBe(3);
+  });
+
+  it('emits iteration_started event on each retry', async () => {
+    mockRunDevAgent.mockResolvedValue(DEV_RESULT);
+    mockRunQAAgent.mockResolvedValueOnce(QA_FAIL_RESULT).mockResolvedValueOnce(QA_PASS_RESULT);
+
+    const events: PipelineEvent[] = [];
+    await runPipeline('Build a CLI', STEPS, undefined, undefined, { maxIterations: 2 }, (e) =>
+      events.push(e),
+    );
+
+    const iterEvents = events.filter((e) => e.type === 'iteration_started');
+    expect(iterEvents).toHaveLength(1);
+    expect(
+      (iterEvents[0] as Extract<(typeof iterEvents)[0], { type: 'iteration_started' }>).iteration,
+    ).toBe(2);
+  });
+
+  it('single pass (no retry) leaves iterations undefined', async () => {
+    mockRunDevAgent.mockResolvedValue(DEV_RESULT);
+    mockRunQAAgent.mockResolvedValue(QA_PASS_RESULT);
+
+    const run = await runPipeline('Build a CLI', STEPS);
+    expect(run.iterations).toBeUndefined();
   });
 });
