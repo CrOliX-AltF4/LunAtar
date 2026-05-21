@@ -36,6 +36,7 @@ export interface PipelineOverride {
   pluginIds?: string[];
   /** Abort the pipeline if accumulated cost exceeds this value (USD). */
   maxCostUsd?: number;
+  maxIterations?: number; // default: 2
 }
 
 // ─── Internal pipeline context ────────────────────────────────────────────────

@@ -90,6 +90,7 @@ export interface DevInput {
   architecture: string;
   techStack: string[];
   tasks: PlannerTask[];
+  qaFeedback?: QAIssue[]; // injected on iteration ≥ 2
 }
 
 export interface CodeFile {

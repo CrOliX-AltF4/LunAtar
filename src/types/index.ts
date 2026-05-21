@@ -55,6 +55,7 @@ export interface PipelineRun {
   totalTokens: number;
   totalDurationMs: number;
   status: 'running' | 'completed' | 'failed' | 'aborted';
+  iterations?: number; // undefined = single pass (no QA retry occurred)
 }
 
 // ─── Model Recommendation ────────────────────────────────────────────────────

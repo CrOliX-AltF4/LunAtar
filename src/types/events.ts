@@ -1,4 +1,5 @@
 import type { AgentRole, PipelineRun } from './index.js';
+import type { QAIssue } from '../agents/types.js';
 
 export type PipelineEvent =
   | { type: 'step_started'; stepId: string; role: AgentRole; provider: string; modelId: string }
@@ -14,4 +15,10 @@ export type PipelineEvent =
   | { type: 'step_skipped'; stepId: string; role: AgentRole }
   | { type: 'plugin_called'; stepId: string; pluginId: string; callCount: number }
   | { type: 'provider_switched'; stepId: string; from: string; to: string }
+  | {
+      type: 'iteration_started';
+      iteration: number;
+      maxIterations: number;
+      issues: QAIssue[];
+    }
   | { type: 'run_completed'; run: PipelineRun };
