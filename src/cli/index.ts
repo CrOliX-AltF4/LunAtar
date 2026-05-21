@@ -82,9 +82,16 @@ program
 
 program
   .command('history')
-  .description('List previous pipeline runs')
-  .action(async () => {
-    await historyCommand();
+  .description(
+    'List previous pipeline runs (interactive TUI; use --json for machine-readable output)',
+  )
+  .option('--json', 'output runs as JSON array instead of launching the TUI')
+  .option('--limit <n>', 'max runs to show in --json mode (default: 20)', (v) => parseInt(v, 10))
+  .action(async (opts?: { json?: boolean; limit?: number }) => {
+    await historyCommand({
+      ...(opts?.json ? { json: true } : {}),
+      ...(opts?.limit !== undefined ? { limit: opts.limit } : {}),
+    });
   });
 
 // ─── setup ────────────────────────────────────────────────────────────────────

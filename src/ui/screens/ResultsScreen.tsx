@@ -429,10 +429,11 @@ async function saveArtifacts(
 
 interface ResultsScreenProps {
   run: PipelineRun;
-  onNewPipeline: () => void;
+  onNewPipeline?: () => void;
+  readOnly?: boolean;
 }
 
-export function ResultsScreen({ run, onNewPipeline }: ResultsScreenProps) {
+export function ResultsScreen({ run, onNewPipeline, readOnly }: ResultsScreenProps) {
   const app = useApp();
   const [tab, setTab] = useState<Tab>('overview');
   const [selectedFile, setSelectedFile] = useState(0);
@@ -459,8 +460,8 @@ export function ResultsScreen({ run, onNewPipeline }: ResultsScreenProps) {
 
     // Actions
     if (input === 'q') app.exit();
-    if (input === 'r') onNewPipeline();
-    if (input === 's' && dev && !saving && !savedPath) {
+    if (input === 'r' && !readOnly && onNewPipeline) onNewPipeline();
+    if (input === 's' && !readOnly && dev && !saving && !savedPath) {
       setSaving(true);
       void saveArtifacts(run, dev, po, planner)
         .then((path) => {
@@ -512,14 +513,16 @@ export function ResultsScreen({ run, onNewPipeline }: ResultsScreenProps) {
 
       {/* Footer */}
       <Box gap={3} paddingX={1} marginTop={1}>
-        {dev && !savedPath && (
+        {!readOnly && dev && !savedPath && (
           <Text color="gray">
             <Text color="cyan">[s]</Text> save
           </Text>
         )}
-        <Text color="gray">
-          <Text color="cyan">[r]</Text> new
-        </Text>
+        {!readOnly && (
+          <Text color="gray">
+            <Text color="cyan">[r]</Text> new
+          </Text>
+        )}
         <Text color="gray">
           <Text color="cyan">[q]</Text> quit
         </Text>
