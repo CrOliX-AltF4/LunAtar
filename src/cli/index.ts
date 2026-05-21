@@ -43,6 +43,9 @@ program
     'override provider for all agents: groq | gemini | claude | openai | nim',
   )
   .option('--budget-usd <max>', 'abort pipeline if total cost exceeds this USD amount', parseFloat)
+  .option('--max-iterations <n>', 'max Dev→QA retry iterations on QA fail (default: 2)', (v) =>
+    parseInt(v, 10),
+  )
   .action(
     async (
       intent?: string,
@@ -56,6 +59,7 @@ program
         model?: string;
         provider?: string;
         budgetUsd?: number;
+        maxIterations?: number;
       },
     ) => {
       await runCommand({
@@ -69,6 +73,7 @@ program
         ...(opts?.model ? { model: opts.model } : {}),
         ...(opts?.provider ? { provider: opts.provider } : {}),
         ...(opts?.budgetUsd !== undefined ? { budgetUsd: opts.budgetUsd } : {}),
+        ...(opts?.maxIterations !== undefined ? { maxIterations: opts.maxIterations } : {}),
       });
     },
   );

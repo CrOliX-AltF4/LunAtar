@@ -146,6 +146,11 @@ function OverviewTab({ run, qa }: OverviewTabProps) {
         <Text color="gray">
           Time <Text color="white">{formatDuration(run.totalDurationMs)}</Text>
         </Text>
+        {run.iterations !== undefined && (
+          <Text color="gray">
+            Iterations <Text color="yellow">{run.iterations}</Text>
+          </Text>
+        )}
       </Box>
     </Box>
   );
