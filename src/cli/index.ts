@@ -12,6 +12,7 @@ import { setupCommand } from './commands/setup.js';
 import { configCommand } from './commands/config.js';
 import { initCommand } from './commands/init.js';
 import { catalogCommand } from './commands/catalog.js';
+import { watchCommand } from './commands/watch.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json') as { version: string };
@@ -139,6 +140,20 @@ program
   .description('List all built-in and installed skills and plugins')
   .action(() => {
     catalogCommand();
+  });
+
+// ─── watch ────────────────────────────────────────────────────────────────────
+
+program
+  .command('watch <path>')
+  .description('Watch a path and re-run the pipeline automatically on file changes')
+  .option('--intent <file>', 'read intent from this file on each run')
+  .option('--debounce <ms>', 'debounce delay in ms (default: 500)', (v) => parseInt(v, 10))
+  .action(async (watchPath: string, opts?: { intent?: string; debounce?: number }) => {
+    await watchCommand(watchPath, {
+      ...(opts?.intent !== undefined ? { intent: opts.intent } : {}),
+      ...(opts?.debounce !== undefined ? { debounce: opts.debounce } : {}),
+    });
   });
 
 // ─── Default: open prompt screen ─────────────────────────────────────────────
