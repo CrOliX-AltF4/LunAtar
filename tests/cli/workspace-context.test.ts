@@ -32,7 +32,11 @@ describe('gatherWorkspaceContext', () => {
 
   it('includes git changes when working tree is dirty', async () => {
     mockReadFile.mockResolvedValue(JSON.stringify({ name: 'x', version: '0.1.0' }));
-    mockExecAsync.mockResolvedValue({ stdout: ' M src/index.ts\nA  src/new.ts\n', stderr: '' });
+    // status, log, diff --cached
+    mockExecAsync
+      .mockResolvedValueOnce({ stdout: ' M src/index.ts\nA  src/new.ts\n', stderr: '' })
+      .mockResolvedValueOnce({ stdout: 'abc1234 feat: prior work\n', stderr: '' })
+      .mockResolvedValueOnce({ stdout: '', stderr: '' });
     const ctx = await wc.gatherWorkspaceContext('/project');
     expect(ctx).toContain('src/index.ts');
     expect(ctx).toContain('src/new.ts');
@@ -43,6 +47,27 @@ describe('gatherWorkspaceContext', () => {
     mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' });
     const ctx = await wc.gatherWorkspaceContext('/project');
     expect(ctx).toContain('Git: clean');
+  });
+
+  it('includes last commit in context', async () => {
+    mockReadFile.mockResolvedValue(JSON.stringify({ name: 'x', version: '0.1.0' }));
+    mockExecAsync
+      .mockResolvedValueOnce({ stdout: '', stderr: '' })
+      .mockResolvedValueOnce({ stdout: 'abc1234 feat: add feature\n', stderr: '' })
+      .mockResolvedValueOnce({ stdout: '', stderr: '' });
+    const ctx = await wc.gatherWorkspaceContext('/project');
+    expect(ctx).toContain('Last commit: abc1234 feat: add feature');
+  });
+
+  it('includes staged diff stat when changes are staged', async () => {
+    mockReadFile.mockResolvedValue(JSON.stringify({ name: 'x', version: '0.1.0' }));
+    mockExecAsync
+      .mockResolvedValueOnce({ stdout: '', stderr: '' })
+      .mockResolvedValueOnce({ stdout: '', stderr: '' })
+      .mockResolvedValueOnce({ stdout: 'src/foo.ts | 5 +++++\n1 file changed\n', stderr: '' });
+    const ctx = await wc.gatherWorkspaceContext('/project');
+    expect(ctx).toContain('Staged:');
+    expect(ctx).toContain('src/foo.ts');
   });
 
   it('falls back gracefully when package.json is missing', async () => {

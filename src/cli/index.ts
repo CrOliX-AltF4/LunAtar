@@ -39,6 +39,12 @@ program
   )
   .option('--output <dir>', 'write Dev-generated files to this directory after the run')
   .option('--apply', 'write Dev-generated files to the current directory (headless)')
+  .option(
+    '--file <path>',
+    'inject file content into PO context (repeatable)',
+    (v: string, acc: string[]) => [...acc, v],
+    [] as string[],
+  )
   .option('--workspace', 'inject cwd, package.json and git status into the PO context')
   .option('--model <id>', 'override model ID for all agents (e.g. gemini-2.5-pro)')
   .option(
@@ -59,6 +65,7 @@ program
         fromPo?: string;
         output?: string;
         apply?: boolean;
+        file?: string[];
         workspace?: boolean;
         model?: string;
         provider?: string;
@@ -74,6 +81,7 @@ program
         ...(opts?.fromPo ? { fromPo: opts.fromPo } : {}),
         ...(opts?.output ? { output: opts.output } : {}),
         ...(opts?.apply ? { apply: true } : {}),
+        ...(opts?.file && opts.file.length > 0 ? { file: opts.file } : {}),
         ...(opts?.workspace ? { workspace: true } : {}),
         ...(opts?.model ? { model: opts.model } : {}),
         ...(opts?.provider ? { provider: opts.provider } : {}),

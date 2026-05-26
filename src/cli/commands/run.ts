@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { existsSync, readFileSync } from 'node:fs';
 import { render } from 'ink';
 import React from 'react';
 import { App } from '../../ui/App.js';
@@ -33,6 +34,7 @@ interface RunOptions {
   fromPo?: string;
   output?: string;
   apply?: boolean;
+  file?: string[];
   workspace?: boolean;
   model?: string;
   provider?: string;
@@ -325,6 +327,22 @@ export async function runCommand(options: RunOptions): Promise<void> {
   if (options.workspace) {
     const wsCtx = await gatherWorkspaceContext(process.cwd());
     resolvedIntent = resolvedIntent ? `${wsCtx}\n\nTask: ${resolvedIntent}` : wsCtx;
+  }
+
+  // ── Inject --file context ───────────────────────────────────────────────────
+  if (options.file && options.file.length > 0) {
+    const fileParts: string[] = [];
+    for (const filePath of options.file) {
+      if (!existsSync(filePath)) {
+        process.stderr.write(`Error: file not found: ${filePath}\n`);
+        process.exit(1);
+        return;
+      }
+      const content = readFileSync(filePath, 'utf-8');
+      fileParts.push(`\`\`\`\n// ${filePath}\n${content}\n\`\`\``);
+    }
+    const fileContext = fileParts.join('\n\n');
+    resolvedIntent = resolvedIntent ? `${fileContext}\n\n${resolvedIntent}` : fileContext;
   }
 
   // ── Validate --model and --provider ────────────────────────────────────────
