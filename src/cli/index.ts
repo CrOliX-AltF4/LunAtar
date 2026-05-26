@@ -13,6 +13,7 @@ import { configCommand } from './commands/config.js';
 import { initCommand } from './commands/init.js';
 import { catalogCommand } from './commands/catalog.js';
 import { watchCommand } from './commands/watch.js';
+import { askCommand } from './commands/ask.js';
 import { welcomeCommand } from './commands/welcome.js';
 import { listConfiguredProviders } from '../providers/config.js';
 
@@ -39,6 +40,13 @@ program
     'inject PO output JSON from a file or stdin ("-"); auto-skips PO agent',
   )
   .option('--output <dir>', 'write Dev-generated files to this directory after the run')
+  .option('--apply', 'write Dev-generated files to the current directory (headless)')
+  .option(
+    '--file <path>',
+    'inject file content into PO context (repeatable)',
+    (v: string, acc: string[]) => [...acc, v],
+    [] as string[],
+  )
   .option('--workspace', 'inject cwd, package.json and git status into the PO context')
   .option('--model <id>', 'override model ID for all agents (e.g. gemini-2.5-pro)')
   .option(
@@ -58,6 +66,8 @@ program
         dry?: boolean;
         fromPo?: string;
         output?: string;
+        apply?: boolean;
+        file?: string[];
         workspace?: boolean;
         model?: string;
         provider?: string;
@@ -72,6 +82,8 @@ program
         ...(opts?.dry ? { dry: true } : {}),
         ...(opts?.fromPo ? { fromPo: opts.fromPo } : {}),
         ...(opts?.output ? { output: opts.output } : {}),
+        ...(opts?.apply ? { apply: true } : {}),
+        ...(opts?.file && opts.file.length > 0 ? { file: opts.file } : {}),
         ...(opts?.workspace ? { workspace: true } : {}),
         ...(opts?.model ? { model: opts.model } : {}),
         ...(opts?.provider ? { provider: opts.provider } : {}),
@@ -158,7 +170,31 @@ program
     });
   });
 
-// ─── Default: first-run detection or prompt screen ───────────────────────────
+// ─── ask ──────────────────────────────────────────────────────────────────────
+
+program
+  .command('ask <prompt>')
+  .description('Ask a question directly to the configured LLM (no pipeline)')
+  .option(
+    '--file <path>',
+    'inject file content into context (repeatable)',
+    (v: string, acc: string[]) => [...acc, v],
+    [] as string[],
+  )
+  .option(
+    '--provider <name>',
+    'override provider: groq | gemini | claude | openai | nim | openrouter | ollama',
+  )
+  .option('--model <id>', 'override model ID')
+  .action(async (prompt: string, opts: { file?: string[]; provider?: string; model?: string }) => {
+    await askCommand(prompt, {
+      ...(opts.file && opts.file.length > 0 ? { file: opts.file } : {}),
+      ...(opts.provider ? { provider: opts.provider } : {}),
+      ...(opts.model ? { model: opts.model } : {}),
+    });
+  });
+
+// ─── Default: open prompt screen ─────────────────────────────────────────────
 
 if (process.argv.length <= 2) {
   if (listConfiguredProviders().length === 0) {

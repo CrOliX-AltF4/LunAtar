@@ -41,6 +41,18 @@ export async function gatherWorkspaceContext(cwd: string): Promise<string> {
       const extra = changed.length > 10 ? ` (+${(changed.length - 10).toString()} more)` : '';
       lines.push(`Git changes: ${shown}${extra}`);
     }
+
+    const { stdout: logOut } = await deps.execAsync('git log -1 --oneline', { cwd });
+    if (logOut.trim()) {
+      lines.push(`Last commit: ${logOut.trim()}`);
+    }
+
+    const { stdout: diffOut } = await deps.execAsync('git diff --cached --stat', { cwd });
+    const diffLines = diffOut.trim().split('\n').filter(Boolean);
+    if (diffLines.length > 0) {
+      const shown = diffLines.slice(0, 5).join('\n  ');
+      lines.push(`Staged:\n  ${shown}`);
+    }
   } catch {
     // not a git repo — omit git block
   }
