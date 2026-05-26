@@ -16,6 +16,7 @@ import { watchCommand } from './commands/watch.js';
 import { askCommand } from './commands/ask.js';
 import { welcomeCommand } from './commands/welcome.js';
 import { listConfiguredProviders } from '../providers/config.js';
+import { costsCommand } from './commands/costs.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json') as { version: string };
@@ -54,6 +55,11 @@ program
     'override provider for all agents: groq | gemini | claude | openai | nim',
   )
   .option('--budget-usd <max>', 'abort pipeline if total cost exceeds this USD amount', parseFloat)
+  .option(
+    '--daily-budget-usd <max>',
+    'abort if cumulative spend today exceeds this amount',
+    parseFloat,
+  )
   .option('--max-iterations <n>', 'max Dev→QA retry iterations on QA fail (default: 2)', (v) =>
     parseInt(v, 10),
   )
@@ -72,6 +78,7 @@ program
         model?: string;
         provider?: string;
         budgetUsd?: number;
+        dailyBudgetUsd?: number;
         maxIterations?: number;
       },
     ) => {
@@ -88,6 +95,7 @@ program
         ...(opts?.model ? { model: opts.model } : {}),
         ...(opts?.provider ? { provider: opts.provider } : {}),
         ...(opts?.budgetUsd !== undefined ? { budgetUsd: opts.budgetUsd } : {}),
+        ...(opts?.dailyBudgetUsd !== undefined ? { dailyBudgetUsd: opts.dailyBudgetUsd } : {}),
         ...(opts?.maxIterations !== undefined ? { maxIterations: opts.maxIterations } : {}),
       });
     },
@@ -154,6 +162,20 @@ program
   .description('List all built-in and installed skills and plugins')
   .action(() => {
     catalogCommand();
+  });
+
+// ─── costs ────────────────────────────────────────────────────────────────────
+
+program
+  .command('costs')
+  .description('Show cost summary from run history')
+  .option('--days <n>', 'rolling window in days (default: 7)', (v) => parseInt(v, 10))
+  .option('--json', 'output as JSON')
+  .action(async (opts?: { days?: number; json?: boolean }) => {
+    await costsCommand({
+      ...(opts?.days !== undefined ? { days: opts.days } : {}),
+      ...(opts?.json ? { json: true } : {}),
+    });
   });
 
 // ─── watch ────────────────────────────────────────────────────────────────────

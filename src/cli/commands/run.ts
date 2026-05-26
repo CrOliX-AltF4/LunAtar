@@ -12,6 +12,7 @@ import type { AgentRole, PipelineStep, ProviderName } from '../../types/index.js
 import type { PipelineEvent } from '../../types/events.js';
 import { gatherWorkspaceContext } from '../workspace-context.js';
 import { writeOutputFiles } from '../output-writer.js';
+import { getTodaySpend } from './costs.js';
 
 // ─── Shared role labels for progress output ───────────────────────────────────
 
@@ -39,6 +40,7 @@ interface RunOptions {
   model?: string;
   provider?: string;
   budgetUsd?: number;
+  dailyBudgetUsd?: number;
   maxIterations?: number;
 }
 
@@ -239,6 +241,12 @@ async function headlessRun(
   };
 
   const onEvent = (event: PipelineEvent): void => {
+    if (event.type === 'budget_warning') {
+      process.stderr.write(
+        `\nWarning: ${event.percentUsed.toString()}% of budget used (${event.spentUsd.toFixed(4)} / ${event.limitUsd.toFixed(4)} USD)\n`,
+      );
+      return;
+    }
     process.stdout.write(JSON.stringify(event) + '\n');
   };
 
@@ -360,8 +368,29 @@ export async function runCommand(options: RunOptions): Promise<void> {
     process.exit(1);
   }
 
+  // ── Resolve daily budget → effective per-run cap ────────────────────────────
+  let effectiveBudgetUsd = options.budgetUsd;
+  if (options.dailyBudgetUsd !== undefined) {
+    const todaySpend = await getTodaySpend();
+    const remaining = Math.max(0, options.dailyBudgetUsd - todaySpend);
+    if (todaySpend > 0) {
+      process.stderr.write(
+        `Daily budget: ${options.dailyBudgetUsd.toFixed(4)} USD — already spent today: ${todaySpend.toFixed(4)} USD — remaining: ${remaining.toFixed(4)} USD\n`,
+      );
+    }
+    if (remaining <= 0) {
+      process.stderr.write(
+        `Daily budget of ${options.dailyBudgetUsd.toFixed(4)} USD already exhausted for today.\n`,
+      );
+      process.exit(1);
+      return;
+    }
+    effectiveBudgetUsd =
+      effectiveBudgetUsd !== undefined ? Math.min(effectiveBudgetUsd, remaining) : remaining;
+  }
+
   const pipelineOverride: PipelineOverride = {
-    ...(options.budgetUsd !== undefined ? { maxCostUsd: options.budgetUsd } : {}),
+    ...(effectiveBudgetUsd !== undefined ? { maxCostUsd: effectiveBudgetUsd } : {}),
     ...(options.maxIterations !== undefined ? { maxIterations: options.maxIterations } : {}),
   };
 
