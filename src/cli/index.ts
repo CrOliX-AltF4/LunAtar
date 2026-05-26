@@ -13,6 +13,7 @@ import { configCommand } from './commands/config.js';
 import { initCommand } from './commands/init.js';
 import { catalogCommand } from './commands/catalog.js';
 import { watchCommand } from './commands/watch.js';
+import { askCommand } from './commands/ask.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json') as { version: string };
@@ -153,6 +154,30 @@ program
     await watchCommand(watchPath, {
       ...(opts?.intent !== undefined ? { intent: opts.intent } : {}),
       ...(opts?.debounce !== undefined ? { debounce: opts.debounce } : {}),
+    });
+  });
+
+// ─── ask ──────────────────────────────────────────────────────────────────────
+
+program
+  .command('ask <prompt>')
+  .description('Ask a question directly to the configured LLM (no pipeline)')
+  .option(
+    '--file <path>',
+    'inject file content into context (repeatable)',
+    (v: string, acc: string[]) => [...acc, v],
+    [] as string[],
+  )
+  .option(
+    '--provider <name>',
+    'override provider: groq | gemini | claude | openai | nim | openrouter | ollama',
+  )
+  .option('--model <id>', 'override model ID')
+  .action(async (prompt: string, opts: { file?: string[]; provider?: string; model?: string }) => {
+    await askCommand(prompt, {
+      ...(opts.file && opts.file.length > 0 ? { file: opts.file } : {}),
+      ...(opts.provider ? { provider: opts.provider } : {}),
+      ...(opts.model ? { model: opts.model } : {}),
     });
   });
 
