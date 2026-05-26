@@ -4,8 +4,8 @@
 // getApiKey() reads process.env, so dotenv vars are picked up automatically.
 import 'dotenv/config';
 
-import { createRequire } from 'node:module';
 import { Command } from 'commander';
+import packageJson from '../../package.json';
 import { runCommand } from './commands/run.js';
 import { historyCommand } from './commands/history.js';
 import { setupCommand } from './commands/setup.js';
@@ -18,8 +18,7 @@ import { welcomeCommand } from './commands/welcome.js';
 import { listConfiguredProviders } from '../providers/config.js';
 import { costsCommand } from './commands/costs.js';
 
-const require = createRequire(import.meta.url);
-const { version } = require('../package.json') as { version: string };
+const { version } = packageJson;
 
 const program = new Command();
 
