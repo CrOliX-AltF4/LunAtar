@@ -1,10 +1,33 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import type { PipelineStep } from '../../types/index.js';
+import { BRAND_COLOR } from '../theme.js';
 
 interface FooterProps {
   steps: PipelineStep[];
   keybindings: Array<{ key: string; label: string }>;
+}
+
+function ProgressBar({ steps }: { steps: PipelineStep[] }) {
+  const active = steps.filter((s) => s.status !== 'skipped');
+  const done = active.filter((s) => s.status === 'completed' || s.status === 'failed').length;
+  const running = active.some((s) => s.status === 'running');
+
+  if (!running && done === 0) return null;
+
+  const total = active.length;
+  const BAR_WIDTH = 12;
+  const filled = Math.round((done / total) * BAR_WIDTH);
+  const bar = '█'.repeat(filled) + '░'.repeat(BAR_WIDTH - filled);
+
+  return (
+    <Box gap={2} marginBottom={1}>
+      <Text color={BRAND_COLOR}>{bar}</Text>
+      <Text color="gray">
+        {done}/{total} steps
+      </Text>
+    </Box>
+  );
 }
 
 export function Footer({ steps, keybindings }: FooterProps) {
@@ -16,6 +39,9 @@ export function Footer({ steps, keybindings }: FooterProps) {
 
   return (
     <Box flexDirection="column" borderStyle="single" borderColor="gray" paddingX={1} marginTop={1}>
+      {/* Progress bar */}
+      <ProgressBar steps={steps} />
+
       {/* Run metrics */}
       {hasMetrics && (
         <Box gap={3} marginBottom={1}>
@@ -44,7 +70,7 @@ export function Footer({ steps, keybindings }: FooterProps) {
       <Box gap={3}>
         {keybindings.map(({ key, label }) => (
           <Box key={key} gap={1}>
-            <Text color="cyan" bold>
+            <Text color={BRAND_COLOR} bold>
               [{key}]
             </Text>
             <Text color="gray">{label}</Text>

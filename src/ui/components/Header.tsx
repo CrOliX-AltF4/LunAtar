@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { useSystemMetrics } from '../hooks/useSystemMetrics.js';
+import { BRAND_COLOR, BRAND_NAME, BRAND_TAGLINE } from '../theme.js';
 import packageJson from '../../../package.json';
 
 const { version } = packageJson;
@@ -13,14 +14,14 @@ export function Header() {
   const cpuColor = cpuUsagePercent > 80 ? 'red' : cpuUsagePercent > 50 ? 'yellow' : 'green';
 
   return (
-    <Box borderStyle="round" borderColor="gray" paddingX={1} justifyContent="space-between">
+    <Box borderStyle="round" borderColor={BRAND_COLOR} paddingX={1} justifyContent="space-between">
       <Box gap={2}>
         <Box gap={1}>
-          <Text color="cyan" bold>
-            Lun'Atar
+          <Text color={BRAND_COLOR} bold>
+            {BRAND_NAME}
           </Text>
           <Text color="gray" dimColor>
-            intent → code
+            {BRAND_TAGLINE}
           </Text>
         </Box>
         <Text color="gray" dimColor>
