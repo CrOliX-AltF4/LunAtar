@@ -144,6 +144,7 @@ export async function runPipeline(
   const MAX_ITERATIONS = override?.maxIterations ?? 2;
   let iterationCount = 0;
   let keepIterating = true;
+  const budgetWarningsEmitted = new Set<number>(); // tracks which % thresholds were warned
 
   const devIndex = run.steps.findIndex((s) => s.role === 'dev');
   const qaIndex = run.steps.findIndex((s) => s.role === 'qa');
@@ -320,6 +321,20 @@ export async function runPipeline(
         const accumulatedCost = run.steps
           .slice(0, i + 1)
           .reduce((sum, s) => sum + (s.costUsd ?? 0), 0);
+        const pct = Math.floor((accumulatedCost / override.maxCostUsd) * 100);
+
+        for (const threshold of [50, 80] as const) {
+          if (pct >= threshold && !budgetWarningsEmitted.has(threshold)) {
+            budgetWarningsEmitted.add(threshold);
+            onEvent?.({
+              type: 'budget_warning',
+              percentUsed: pct,
+              spentUsd: accumulatedCost,
+              limitUsd: override.maxCostUsd,
+            });
+          }
+        }
+
         if (accumulatedCost > override.maxCostUsd) {
           patch(i, {
             status: 'failed',

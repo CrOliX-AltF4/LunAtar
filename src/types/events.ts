@@ -21,4 +21,5 @@ export type PipelineEvent =
       maxIterations: number;
       issues: QAIssue[];
     }
-  | { type: 'run_completed'; run: PipelineRun };
+  | { type: 'run_completed'; run: PipelineRun }
+  | { type: 'budget_warning'; percentUsed: number; spentUsd: number; limitUsd: number };
