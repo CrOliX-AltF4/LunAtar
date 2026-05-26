@@ -13,6 +13,7 @@ import type { PipelineEvent } from '../../types/events.js';
 import { gatherWorkspaceContext } from '../workspace-context.js';
 import { writeOutputFiles } from '../output-writer.js';
 import { getTodaySpend } from './costs.js';
+import { printBanner } from '../banner.js';
 
 // ─── Shared role labels for progress output ───────────────────────────────────
 
@@ -36,6 +37,7 @@ interface RunOptions {
   output?: string;
   apply?: boolean;
   file?: string[];
+  noBanner?: boolean;
   workspace?: boolean;
   model?: string;
   provider?: string;
@@ -217,6 +219,7 @@ async function headlessRun(
     .map((s) => ROLE_LABELS[s.role] ?? s.role)
     .join(', ');
 
+  printBanner();
   process.stderr.write(`lunatar — running pipeline: "${intent}"\n`);
   if (skippedNames) process.stderr.write(`Skipping: ${skippedNames}\n`);
   process.stderr.write('\n');
@@ -304,6 +307,11 @@ async function headlessRun(
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 export async function runCommand(options: RunOptions): Promise<void> {
+  // ── Banner suppression ──────────────────────────────────────────────────────
+  if (options.noBanner) {
+    process.env['LUNATAR_NO_BANNER'] = '1';
+  }
+
   // ── Resolve skip roles ──────────────────────────────────────────────────────
   let skipRoles: Set<AgentRole> = new Set();
 

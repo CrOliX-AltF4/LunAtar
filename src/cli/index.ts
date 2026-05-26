@@ -63,6 +63,7 @@ program
   .option('--max-iterations <n>', 'max Dev→QA retry iterations on QA fail (default: 2)', (v) =>
     parseInt(v, 10),
   )
+  .option('--no-banner', 'suppress the startup banner (also: LUNATAR_NO_BANNER=1)')
   .action(
     async (
       intent?: string,
@@ -80,6 +81,7 @@ program
         budgetUsd?: number;
         dailyBudgetUsd?: number;
         maxIterations?: number;
+        noBanner?: boolean;
       },
     ) => {
       await runCommand({
@@ -97,6 +99,7 @@ program
         ...(opts?.budgetUsd !== undefined ? { budgetUsd: opts.budgetUsd } : {}),
         ...(opts?.dailyBudgetUsd !== undefined ? { dailyBudgetUsd: opts.dailyBudgetUsd } : {}),
         ...(opts?.maxIterations !== undefined ? { maxIterations: opts.maxIterations } : {}),
+        ...(opts?.noBanner ? { noBanner: true } : {}),
       });
     },
   );
