@@ -38,6 +38,7 @@ program
     'inject PO output JSON from a file or stdin ("-"); auto-skips PO agent',
   )
   .option('--output <dir>', 'write Dev-generated files to this directory after the run')
+  .option('--apply', 'write Dev-generated files to the current directory (headless)')
   .option('--workspace', 'inject cwd, package.json and git status into the PO context')
   .option('--model <id>', 'override model ID for all agents (e.g. gemini-2.5-pro)')
   .option(
@@ -57,6 +58,7 @@ program
         dry?: boolean;
         fromPo?: string;
         output?: string;
+        apply?: boolean;
         workspace?: boolean;
         model?: string;
         provider?: string;
@@ -71,6 +73,7 @@ program
         ...(opts?.dry ? { dry: true } : {}),
         ...(opts?.fromPo ? { fromPo: opts.fromPo } : {}),
         ...(opts?.output ? { output: opts.output } : {}),
+        ...(opts?.apply ? { apply: true } : {}),
         ...(opts?.workspace ? { workspace: true } : {}),
         ...(opts?.model ? { model: opts.model } : {}),
         ...(opts?.provider ? { provider: opts.provider } : {}),

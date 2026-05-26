@@ -32,6 +32,7 @@ interface RunOptions {
   dry?: boolean;
   fromPo?: string;
   output?: string;
+  apply?: boolean;
   workspace?: boolean;
   model?: string;
   provider?: string;
@@ -196,6 +197,7 @@ async function headlessRun(
   pipelineOverride?: PipelineOverride,
   model?: string,
   provider?: string,
+  suggestCommit?: boolean,
 ): Promise<void> {
   let steps = buildDefaultSteps(skipRoles);
   if (model !== undefined || provider !== undefined) {
@@ -252,7 +254,7 @@ async function headlessRun(
     `\nDone — status: ${run.status} · $${run.totalCostUsd.toFixed(4)} · ${run.totalTokens.toLocaleString()} tok · ${(run.totalDurationMs / 1000).toFixed(1)}s\n`,
   );
 
-  // Write generated files to disk if --output was given
+  // Write generated files to disk if --output / --apply was given
   if (outputDir) {
     const devStep = run.steps.find((s) => s.role === 'dev' && s.status === 'completed');
     if (devStep?.output) {
@@ -262,6 +264,17 @@ async function headlessRun(
           const written = await writeOutputFiles(devOutput.files, outputDir);
           process.stderr.write(`\nWrote ${written.length.toString()} file(s) to ${outputDir}:\n`);
           for (const p of written) process.stderr.write(`  ${p}\n`);
+
+          if (suggestCommit && written.length > 0) {
+            const subject = intent
+              .toLowerCase()
+              .replace(/[^a-z0-9\s-]/g, '')
+              .trim()
+              .slice(0, 50);
+            process.stderr.write('\nSuggested commit:\n');
+            process.stderr.write(`  git add ${written.map((p) => `"${p}"`).join(' ')}\n`);
+            process.stderr.write(`  git commit -m "feat: ${subject}"\n`);
+          }
         }
       } catch {
         process.stderr.write(`\nWarning: could not parse dev output for --output\n`);
@@ -340,22 +353,25 @@ export async function runCommand(options: RunOptions): Promise<void> {
     return;
   }
 
-  // ── Headless JSON mode ──────────────────────────────────────────────────────
-  if (options.json || options.output) {
+  // ── Headless JSON / output / apply mode ────────────────────────────────────
+  if (options.json || options.output || options.apply) {
     if (!resolvedIntent) {
       process.stderr.write(
-        'Error: --json / --output requires an intent argument. Example: lunatar run "build a REST API" --json\n',
+        'Error: --json / --output / --apply requires an intent argument. Example: lunatar run "build a REST API" --apply\n',
       );
       process.exit(1);
+      return;
     }
+    const outputDir = options.apply ? process.cwd() : options.output;
     await headlessRun(
       resolvedIntent,
       skipRoles,
       fromPoPayload,
-      options.output,
+      outputDir,
       pipelineOverride,
       options.model,
       options.provider,
+      options.apply,
     );
     return;
   }
