@@ -13,6 +13,8 @@ import { configCommand } from './commands/config.js';
 import { initCommand } from './commands/init.js';
 import { catalogCommand } from './commands/catalog.js';
 import { watchCommand } from './commands/watch.js';
+import { welcomeCommand } from './commands/welcome.js';
+import { listConfiguredProviders } from '../providers/config.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json') as { version: string };
@@ -156,10 +158,14 @@ program
     });
   });
 
-// ─── Default: open prompt screen ─────────────────────────────────────────────
+// ─── Default: first-run detection or prompt screen ───────────────────────────
 
 if (process.argv.length <= 2) {
-  await runCommand({});
+  if (listConfiguredProviders().length === 0) {
+    await welcomeCommand();
+  } else {
+    await runCommand({});
+  }
 } else {
   program.parse();
 }
