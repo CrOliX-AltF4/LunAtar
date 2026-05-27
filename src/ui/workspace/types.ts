@@ -1,4 +1,5 @@
 import type { CompanionState } from '../components/Companion.js';
+import type { PipelineStep } from '../../types/index.js';
 
 export const COMP_WIDTH = 30;
 export const DIVIDER_W = 1;
@@ -12,3 +13,5 @@ export interface CompanionUpdate {
 }
 
 export type OnCompanionChange = (update: CompanionUpdate) => void;
+
+export type OnStepsChange = (steps: PipelineStep[]) => void;
