@@ -4,13 +4,90 @@ import type { CompanionState } from '../components/Companion.js';
 import * as orchestrator from '../../orchestrator/index.js';
 import { Separator } from '../components/Separator.js';
 import type { OnCompanionChange, OnStepsChange } from '../workspace/types.js';
-import { ParcheminView } from '../workspace/ParcheminView.js';
 import { StepRow } from '../components/StepRow.js';
 import { Footer } from '../components/Footer.js';
 import { MODEL_CATALOG } from '../../models/catalog.js';
 import { buildDefaultSteps } from '../../pipeline/steps.js';
 import type { PipelineRun, PipelineStep, AgentRole } from '../../types/index.js';
 import type { PipelineEvent } from '../../types/events.js';
+import {
+  AGENT_CLASS_SHORT,
+  AGENT_FLAVOR_TEXT,
+  ROLE_TASK_LABELS,
+  STATUS_ICONS,
+  STATUS_COLORS,
+  SPINNER_FRAMES,
+  SPINNER_INTERVAL_MS,
+  COPPER,
+} from '../theme.js';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function truncateIntent(s: string): string {
+  return s.length > 50 ? s.slice(0, 49) + '…' : s;
+}
+
+// ─── StepSummaryRow ───────────────────────────────────────────────────────────
+
+function StepSummaryRow({ step }: { step: PipelineStep }) {
+  const classLabel = AGENT_CLASS_SHORT[step.role].trim();
+  const icon = STATUS_ICONS[step.status];
+  const color = STATUS_COLORS[step.status];
+  const flavors = AGENT_FLAVOR_TEXT[step.role];
+  const flavor = flavors[step.id.charCodeAt(0) % flavors.length] ?? flavors[0];
+  const cost = step.costUsd !== undefined ? ` · $${step.costUsd.toFixed(3)}` : '';
+  const tok =
+    step.tokensUsed !== undefined
+      ? ` · ${step.tokensUsed >= 1000 ? `${(step.tokensUsed / 1000).toFixed(1)}k` : String(step.tokensUsed)} tok`
+      : '';
+
+  return (
+    <Box flexDirection="column" gap={0}>
+      <Box gap={1}>
+        <Text color={color}>{icon}</Text>
+        <Text color={color}>[{classLabel}]</Text>
+        <Text color="white">{ROLE_TASK_LABELS[step.role]}</Text>
+        <Text color="gray" dimColor>
+          {cost}
+          {tok}
+        </Text>
+      </Box>
+      <Box paddingLeft={3}>
+        <Text color="gray" dimColor>
+          {flavor}
+        </Text>
+      </Box>
+    </Box>
+  );
+}
+
+// ─── ActiveStepPanel ──────────────────────────────────────────────────────────
+
+function ActiveStepPanel({ step }: { step: PipelineStep }) {
+  const [frame, setFrame] = useState(0);
+  const classLabel = AGENT_CLASS_SHORT[step.role].trim();
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setFrame((f) => (f + 1) % SPINNER_FRAMES.length);
+    }, SPINNER_INTERVAL_MS);
+    return () => {
+      clearInterval(id);
+    };
+  }, []);
+
+  return (
+    <Box borderStyle="single" borderColor="yellow" flexDirection="column" paddingX={1} marginY={0}>
+      <Text color={COPPER} bold>
+        [ {classLabel} ]
+      </Text>
+      <Box gap={1}>
+        <Text color="cyan">{SPINNER_FRAMES[frame] ?? '⠋'}</Text>
+        <Text color="cyan">{ROLE_TASK_LABELS[step.role]}…</Text>
+      </Box>
+    </Box>
+  );
+}
 
 // ─── Model picker ─────────────────────────────────────────────────────────────
 
@@ -118,6 +195,7 @@ export function PipelineScreen({
   const [isRunning, setIsRunning] = useState(false);
   const [currentIteration, setCurrentIteration] = useState(1);
   const [maxIterations, setMaxIterations] = useState(2);
+  const [initiative, setInitiative] = useState<number | undefined>(undefined);
 
   const companionState = useMemo((): CompanionState => {
     if (steps.some((s) => s.status === 'failed')) return 'error';
@@ -168,6 +246,7 @@ export function PipelineScreen({
     if (key.downArrow) setFocusedIndex((i) => Math.min(steps.length - 1, i + 1));
     if (input === 'm') setShowPicker(true);
     if (key.return) {
+      setInitiative(Math.floor(Math.random() * 20) + 1);
       setIsRunning(true);
       const override =
         (activeSkillIds?.length ?? 0) > 0 || (activePluginIds?.length ?? 0) > 0
@@ -231,7 +310,42 @@ export function PipelineScreen({
 
         {/* Steps */}
         {isRunning ? (
-          <ParcheminView steps={steps} />
+          <Box flexDirection="column" marginTop={1} gap={1}>
+            {/* Header */}
+            <Box gap={2}>
+              <Text color="cyan" bold>
+                ◆ "{truncateIntent(intent)}"
+              </Text>
+              {initiative !== undefined && (
+                <Text color="gray" dimColor>
+                  ⚄ Init: {String(initiative)}
+                </Text>
+              )}
+            </Box>
+
+            {/* Steps */}
+            {steps
+              .filter((s) => s.status !== 'skipped')
+              .map((step) => {
+                if (step.status === 'completed' || step.status === 'failed') {
+                  return <StepSummaryRow key={step.id} step={step} />;
+                }
+                if (step.status === 'running') {
+                  return <ActiveStepPanel key={step.id} step={step} />;
+                }
+                // pending
+                return (
+                  <Box key={step.id} gap={1}>
+                    <Text color="gray" dimColor>
+                      {STATUS_ICONS[step.status]}
+                    </Text>
+                    <Text color="gray" dimColor>
+                      [{AGENT_CLASS_SHORT[step.role].trim()}] {ROLE_TASK_LABELS[step.role]}
+                    </Text>
+                  </Box>
+                );
+              })}
+          </Box>
         ) : (
           <Box flexDirection="column" marginTop={1} gap={0}>
             {steps.map((step, i) => (
