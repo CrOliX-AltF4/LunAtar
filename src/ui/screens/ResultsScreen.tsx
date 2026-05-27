@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 const execAsync = promisify(exec);
 import { Separator } from '../components/Separator.js';
 import type { OnCompanionChange } from '../workspace/types.js';
-import { STATUS_COLORS } from '../theme.js';
+import { STATUS_COLORS, GOLD, getFileRarity, RARITY_LABELS, RARITY_COLORS } from '../theme.js';
 import type { PipelineRun, AgentRole } from '../../types/index.js';
 import type { DevOutput, POOutput, PlannerOutput, QAOutput, QAIssue } from '../../agents/types.js';
 
@@ -85,7 +85,7 @@ function TabBar({ active }: { active: Tab }) {
         const key = String(i + 1);
         return (
           <Box key={tab} paddingX={1}>
-            <Text color={isActive ? 'cyan' : 'gray'} bold={isActive}>
+            <Text color={isActive ? 'cyan' : 'gray'} {...(isActive ? { bold: true } : {})}>
               [{key}] {TAB_LABELS[tab]}
             </Text>
           </Box>
@@ -185,10 +185,17 @@ function FilesTab({ dev, selectedIndex }: FilesTabProps) {
       <Box flexDirection="column" gap={0}>
         {dev.files.map((f, i) => {
           const isSelected = i === selectedIndex;
+          const lineCount = f.content.split('\n').length;
+          const rarity = getFileRarity(lineCount);
+          const rarityColor = RARITY_COLORS[rarity];
+          const rarityLabel = RARITY_LABELS[rarity];
           return (
             <Box key={f.path} gap={2}>
               <Text color={isSelected ? 'cyan' : 'gray'}>{isSelected ? '▶' : ' '}</Text>
-              <Text color={isSelected ? 'white' : 'gray'} bold={isSelected}>
+              <Text color={rarityColor} dimColor>
+                {rarityLabel}
+              </Text>
+              <Text color={isSelected ? 'white' : 'gray'} {...(isSelected ? { bold: true } : {})}>
                 {f.path}
               </Text>
               {!isSelected && (
@@ -519,6 +526,21 @@ function DiffTab() {
   );
 }
 
+// ─── Forge header ─────────────────────────────────────────────────────────────
+
+function forgeHeader(run: PipelineRun, qa: QAOutput | null): { text: string; color: string } {
+  if (run.status === 'failed' || run.steps.some((s) => s.status === 'failed')) {
+    return { text: "✗ ÉCHEC CRITIQUE — La forge s'est éteinte", color: 'red' };
+  }
+  if (!qa) return { text: '✦ Artefact scellé', color: 'green' };
+  if (qa.verdict === 'pass' && qa.score >= 95) {
+    return { text: '✦ CRITIQUE ! Artefact Légendaire scellé', color: GOLD };
+  }
+  if (qa.verdict === 'pass') return { text: '✦ Artefact scellé', color: 'green' };
+  if (qa.verdict === 'partial') return { text: '◈ Artefact imparfait', color: 'yellow' };
+  return { text: "✗ La qualité n'est pas au rendez-vous", color: 'red' };
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 interface ResultsScreenProps {
@@ -545,6 +567,7 @@ export function ResultsScreen({
   const po = parseStepOutput(run, 'po') as POOutput | null;
   const planner = parseStepOutput(run, 'planner') as PlannerOutput | null;
   const fileCount = dev?.files.length ?? 0;
+  const header = forgeHeader(run, qa);
 
   useEffect(() => {
     onCompanionChange?.({ state: 'done' });
@@ -578,17 +601,17 @@ export function ResultsScreen({
     }
   });
 
-  const runFailed = run.status === 'failed';
-
   return (
     <Box flexDirection="column">
       <Separator />
 
       <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>
         {/* Intent */}
-        <Box gap={1}>
-          <Text color="gray">{runFailed ? 'Failed:' : 'Completed:'}</Text>
-          <Text color="white" bold>
+        <Box flexDirection="column" gap={0}>
+          <Text color={header.color} bold>
+            {header.text}
+          </Text>
+          <Text color="gray" dimColor>
             "{run.intent}"
           </Text>
         </Box>
