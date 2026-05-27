@@ -60,3 +60,83 @@ export const ROLE_TASK_LABELS: Record<AgentRole, string> = {
   dev: 'Code generation',
   qa: 'Validation',
 };
+
+// ─── Agent class labels ───────────────────────────────────────────────────────
+
+export const AGENT_CLASS_LABELS: Record<AgentRole, string> = {
+  po: 'Clerc des Exigences',
+  planner: 'Mage Architecte',
+  dev: 'Forgeron de Code',
+  qa: 'Paladin de la Qualité',
+};
+
+export const AGENT_CLASS_SHORT: Record<AgentRole, string> = {
+  po: 'Clerc    ',
+  planner: 'Mage     ',
+  dev: 'Forgeron ',
+  qa: 'Paladin  ',
+};
+
+// ─── Flavor text ──────────────────────────────────────────────────────────────
+
+export const AGENT_FLAVOR_TEXT: Record<AgentRole, readonly string[]> = {
+  po: [
+    '"Volonté du commanditaire clarifiée."',
+    '"Exigences gravées dans la pierre."',
+    '"Le parchemin est scellé."',
+  ],
+  planner: [
+    '"Le plan prend forme dans les brumes."',
+    '"La stratégie est révélée."',
+    '"Sept chemins mènent au donjon."',
+  ],
+  dev: [
+    '"Le marteau frappe l\'enclume une dernière fois."',
+    '"Les artefacts prennent vie."',
+    '"La forge s\'apaise."',
+  ],
+  qa: ['"La qualité est vérifiée."', '"Le paladin rend son verdict."', '"L\'artefact est pur."'],
+};
+
+// ─── Oracle messages ──────────────────────────────────────────────────────────
+
+export const ORACLE_MESSAGES: readonly string[] = [
+  '"Un forgeron patient forge deux fois."',
+  '"L\'incantation juste vaut mille lignes de code."',
+  '"La forge froide ne craint pas la tempête."',
+  '"Qui maîtrise ses outils maîtrise le donjon."',
+  '"Un parchemin bien rédigé épargne cent batailles."',
+  '"L\'architecte qui doute bâtit sur du sable."',
+  '"Le code non testé est une lame non aiguisée."',
+];
+
+// ─── File rarity ──────────────────────────────────────────────────────────────
+
+export type FileRarity = 'legendary' | 'rare' | 'uncommon' | 'common';
+
+export function getFileRarity(lineCount: number): FileRarity {
+  if (lineCount >= 200) return 'legendary';
+  if (lineCount >= 100) return 'rare';
+  if (lineCount >= 50) return 'uncommon';
+  return 'common';
+}
+
+export const RARITY_LABELS: Record<FileRarity, string> = {
+  legendary: '[LÉGENDAIRE]',
+  rare: '[RARE     ]',
+  uncommon: '[PEU COMM.]',
+  common: '[COMMUN   ]',
+};
+
+export const RARITY_COLORS: Record<FileRarity, string> = {
+  legendary: GOLD,
+  rare: 'magenta',
+  uncommon: 'green',
+  common: 'gray',
+};
+
+// ─── Forgeron level ───────────────────────────────────────────────────────────
+
+export function forgeronLevel(runCount: number): number {
+  return Math.floor(runCount / 3) + 1;
+}
