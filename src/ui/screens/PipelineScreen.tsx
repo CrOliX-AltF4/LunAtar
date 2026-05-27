@@ -3,7 +3,7 @@ import { Box, Text, useInput, useApp } from 'ink';
 import type { CompanionState } from '../components/Companion.js';
 import * as orchestrator from '../../orchestrator/index.js';
 import { Separator } from '../components/Separator.js';
-import type { OnCompanionChange } from '../workspace/types.js';
+import type { OnCompanionChange, OnStepsChange } from '../workspace/types.js';
 import { StepRow } from '../components/StepRow.js';
 import { Footer } from '../components/Footer.js';
 import { MODEL_CATALOG } from '../../models/catalog.js';
@@ -90,6 +90,7 @@ interface PipelineScreenProps {
   activePluginIds?: string[];
   onCompanionChange?: OnCompanionChange;
   onStepChange?: (current: number, total: number) => void;
+  onStepsChange?: OnStepsChange;
 }
 
 const KEYBINDINGS = [
@@ -107,6 +108,7 @@ export function PipelineScreen({
   activePluginIds,
   onCompanionChange,
   onStepChange,
+  onStepsChange,
 }: PipelineScreenProps) {
   const app = useApp();
   const [steps, setSteps] = useState<PipelineStep[]>(() => buildDefaultSteps(skipRoles));
@@ -151,6 +153,10 @@ export function PipelineScreen({
       onStepChange?.(currentIteration, maxIterations);
     }
   }, [currentIteration, maxIterations, isRunning]);
+
+  useEffect(() => {
+    onStepsChange?.(steps);
+  }, [steps]);
 
   useInput((input, key) => {
     if (showPicker) return; // handled inside ModelPicker
