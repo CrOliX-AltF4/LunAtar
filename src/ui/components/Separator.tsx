@@ -15,7 +15,9 @@ export function Separator() {
       setCols(stdout.columns || 80);
     };
     stdout.on('resize', onResize);
-    return () => stdout.removeListener('resize', onResize);
+    return () => {
+      stdout.removeListener('resize', onResize);
+    };
   }, [stdout]);
 
   const prefix = '─── ';

@@ -55,7 +55,9 @@ export function Header({ companionState, speech, context }: HeaderProps) {
       setCols(stdout.columns || 80);
     };
     stdout.on('resize', onResize);
-    return () => stdout.removeListener('resize', onResize);
+    return () => {
+      stdout.removeListener('resize', onResize);
+    };
   }, [stdout]);
 
   const mode: HeaderMode = rows < 20 ? 'micro' : rows < 35 ? 'compact' : 'full';

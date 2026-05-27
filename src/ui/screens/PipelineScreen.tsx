@@ -193,7 +193,10 @@ export function PipelineScreen({
 
   return (
     <Box flexDirection="column">
-      <Header companionState={companionState} speech={companionSpeech} />
+      <Header
+        companionState={companionState}
+        {...(companionSpeech !== undefined ? { speech: companionSpeech } : {})}
+      />
       <Separator />
 
       <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>

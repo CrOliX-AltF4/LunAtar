@@ -205,7 +205,7 @@ export function SetupScreen({ onComplete, onBack }: SetupScreenProps) {
                     ? 'press Enter to confirm'
                     : 'paste your API key…'
                 }
-                mask={focusedProvider.name === 'ollama' ? undefined : '*'}
+                {...(focusedProvider.name !== 'ollama' ? { mask: '*' } : {})}
               />
             </Box>
             <Text color="gray" dimColor>

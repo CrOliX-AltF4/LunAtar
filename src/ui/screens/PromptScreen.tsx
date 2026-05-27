@@ -8,7 +8,7 @@ import { GOLD, COPPER } from '../theme.js';
 
 // ─── Forge hints panel ────────────────────────────────────────────────────────
 
-const TIPS = [
+const TIPS: [string, string][] = [
   ['lunatar ask "…"         ', '— ask a question directly, no pipeline'],
   ['lunatar run --apply     ', '— dev agent writes files to your project'],
   ['lunatar run --file f.ts ', '— inject a file as context'],
@@ -63,7 +63,9 @@ export function PromptScreen({ onSubmit }: PromptScreenProps) {
       setCols(stdout.columns || 80);
     };
     stdout.on('resize', onResize);
-    return () => stdout.removeListener('resize', onResize);
+    return () => {
+      stdout.removeListener('resize', onResize);
+    };
   }, [stdout]);
 
   const handleSubmit = (val: string) => {
