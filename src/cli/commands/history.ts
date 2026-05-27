@@ -1,7 +1,7 @@
 import { render } from 'ink';
 import React from 'react';
 import { HistoryScreen } from '../../ui/screens/HistoryScreen.js';
-import { App } from '../../ui/App.js';
+import { Workspace } from '../../ui/workspace/Workspace.js';
 import { listRuns } from '../../storage/index.js';
 
 export async function historyCommand(
@@ -27,7 +27,7 @@ export async function historyCommand(
 
   if (state.rerunIntent !== null) {
     const { waitUntilExit: waitApp } = render(
-      React.createElement(App, { initialIntent: state.rerunIntent }),
+      React.createElement(Workspace, { initialIntent: state.rerunIntent }),
     );
     await waitApp();
   }

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text, useStdout } from 'ink';
 import TextInput from 'ink-text-input';
 import chalk from 'chalk';
-import { Header } from '../components/Header.js';
 import { Separator } from '../components/Separator.js';
 import { GOLD, COPPER } from '../theme.js';
+import type { OnCompanionChange } from '../workspace/types.js';
 
 // ─── Forge hints panel ────────────────────────────────────────────────────────
 
@@ -51,12 +51,17 @@ function ForgeHints({ cols }: { cols: number }) {
 
 interface PromptScreenProps {
   onSubmit: (intent: string) => void;
+  onCompanionChange?: OnCompanionChange;
 }
 
-export function PromptScreen({ onSubmit }: PromptScreenProps) {
+export function PromptScreen({ onSubmit, onCompanionChange }: PromptScreenProps) {
   const [value, setValue] = useState('');
   const { stdout } = useStdout();
   const [cols, setCols] = useState(stdout.columns || 80);
+
+  useEffect(() => {
+    onCompanionChange?.({ state: 'idle' });
+  }, []);
 
   useEffect(() => {
     const onResize = () => {
@@ -75,7 +80,6 @@ export function PromptScreen({ onSubmit }: PromptScreenProps) {
 
   return (
     <Box flexDirection="column">
-      <Header companionState="idle" />
       <Separator />
 
       <Box flexDirection="column" paddingX={2} paddingY={1} gap={0}>

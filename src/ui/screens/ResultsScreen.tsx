@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
-import { Header } from '../components/Header.js';
 import { Separator } from '../components/Separator.js';
+import type { OnCompanionChange } from '../workspace/types.js';
 import { STATUS_COLORS } from '../theme.js';
 import type { PipelineRun, AgentRole } from '../../types/index.js';
 import type { DevOutput, POOutput, PlannerOutput, QAOutput, QAIssue } from '../../agents/types.js';
@@ -432,9 +432,15 @@ interface ResultsScreenProps {
   run: PipelineRun;
   onNewPipeline?: () => void;
   readOnly?: boolean;
+  onCompanionChange?: OnCompanionChange;
 }
 
-export function ResultsScreen({ run, onNewPipeline, readOnly }: ResultsScreenProps) {
+export function ResultsScreen({
+  run,
+  onNewPipeline,
+  readOnly,
+  onCompanionChange,
+}: ResultsScreenProps) {
   const app = useApp();
   const [tab, setTab] = useState<Tab>('overview');
   const [selectedFile, setSelectedFile] = useState(0);
@@ -446,6 +452,10 @@ export function ResultsScreen({ run, onNewPipeline, readOnly }: ResultsScreenPro
   const po = parseStepOutput(run, 'po') as POOutput | null;
   const planner = parseStepOutput(run, 'planner') as PlannerOutput | null;
   const fileCount = dev?.files.length ?? 0;
+
+  useEffect(() => {
+    onCompanionChange?.({ state: 'done' });
+  }, []);
 
   useInput((input, key) => {
     // Tab switching
@@ -478,7 +488,6 @@ export function ResultsScreen({ run, onNewPipeline, readOnly }: ResultsScreenPro
 
   return (
     <Box flexDirection="column">
-      <Header companionState="done" />
       <Separator />
 
       <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>
