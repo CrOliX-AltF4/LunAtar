@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, Text, useStdout } from 'ink';
 import { compactPortrait, fullPortrait, eyeSymbol } from '../components/companion-sprite.js';
-import { GOLD, COPPER } from '../theme.js';
+import { GOLD, COPPER, STATUS_ICONS, STATUS_COLORS, ROLE_LABELS } from '../theme.js';
 import { COMP_WIDTH } from './types.js';
 import type { CompanionState } from '../components/Companion.js';
-import type { PipelineStep, PipelineStepStatus } from '../../types/index.js';
+import type { PipelineStep } from '../../types/index.js';
 
 const INNER = COMP_WIDTH - 2;
 
@@ -14,29 +14,6 @@ const CHIPS: Record<CompanionState, string> = {
   forging: '· forge en cours',
   error: '· anomalie',
   done: '· artefact prêt',
-};
-
-const STEP_ICON: Record<PipelineStepStatus, string> = {
-  pending: '○',
-  running: '⟳',
-  completed: '✓',
-  failed: '✗',
-  skipped: '—',
-};
-
-const STEP_COLOR: Record<PipelineStepStatus, string> = {
-  pending: 'gray',
-  running: GOLD,
-  completed: 'green',
-  failed: 'red',
-  skipped: 'gray',
-};
-
-const ROLE_LABEL: Record<string, string> = {
-  po: 'PO   ',
-  planner: 'Plan.',
-  dev: 'Dev  ',
-  qa: 'QA   ',
 };
 
 function truncate(text: string, max: number): string {
@@ -124,9 +101,9 @@ export function CompanionColumn({ state, poSpeech, qaSpeech, guildeSteps }: Comp
             {'  GUILDE'}
           </Text>
           {guildeSteps.map((step) => {
-            const icon = STEP_ICON[step.status];
-            const color = STEP_COLOR[step.status];
-            const label = ROLE_LABEL[step.role] ?? step.role.slice(0, 5);
+            const icon = STATUS_ICONS[step.status];
+            const color = STATUS_COLORS[step.status];
+            const label = ROLE_LABELS[step.role];
             const dim = step.status === 'pending' || step.status === 'skipped';
             return (
               <Text key={step.id}>
