@@ -3,7 +3,8 @@ import { Box, Text, useStdout } from 'ink';
 import { TitleBar } from './TitleBar.js';
 import { CompanionColumn } from './CompanionColumn.js';
 import { PanelProvider } from './PanelContext.js';
-import { PromptScreen } from '../screens/PromptScreen.js';
+import { IdleView } from './IdleView.js';
+import { IncantationBar } from './IncantationBar.js';
 import { PipelineScreen } from '../screens/PipelineScreen.js';
 import { ResultsScreen } from '../screens/ResultsScreen.js';
 import { SetupScreen } from '../screens/SetupScreen.js';
@@ -13,7 +14,7 @@ import { listConfiguredProviders } from '../../providers/config.js';
 import { COMP_WIDTH, DIVIDER_W } from './types.js';
 import type { WorkspaceView } from './types.js';
 import type { CompanionState } from '../components/Companion.js';
-import type { AgentRole, PipelineRun } from '../../types/index.js';
+import type { AgentRole, PipelineRun, PipelineStep } from '../../types/index.js';
 
 interface WorkspaceProps {
   initialIntent?: string;
@@ -52,13 +53,18 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
   const [companionState, setCompanionState] = useState<CompanionState>('idle');
   const [poSpeech, setPoSpeech] = useState<string | undefined>(undefined);
   const [qaSpeech, setQaSpeech] = useState<string | undefined>(undefined);
+  const [guildeSteps, setGuildeSteps] = useState<PipelineStep[]>([]);
 
   // ── Navigation handlers ─────────────────────────────────────────────────────
-  const handleIntentSubmit = (value: string) => {
+  const handleIntentFromBar = (value: string) => {
     setIntent(value);
-    setView('config');
-    setCompanionState('thinking');
-    setPoSpeech('Pesant ton arsenal...');
+    setCompletedRun(null);
+    setGuildeSteps([]);
+    setCurrentStep(undefined);
+    setTotalSteps(undefined);
+    setView('pipeline');
+    setCompanionState('forging');
+    setPoSpeech(value);
     setQaSpeech(undefined);
   };
 
@@ -80,6 +86,16 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
     setQaSpeech('Rune vérifiée. Artefact scellé.');
   };
 
+  const handleStepsChange = (steps: PipelineStep[]) => {
+    setGuildeSteps(steps);
+    const active = steps.filter((s) => s.status !== 'skipped');
+    const done = active.filter((s) => s.status === 'completed' || s.status === 'failed');
+    if (active.length > 0) {
+      setCurrentStep(done.length + 1);
+      setTotalSteps(active.length);
+    }
+  };
+
   const handleNewPipeline = () => {
     setCompletedRun(null);
     setIntent('');
@@ -87,6 +103,7 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
     setActivePluginIds([]);
     setCurrentStep(undefined);
     setTotalSteps(undefined);
+    setGuildeSteps([]);
     setView('prompt');
     setCompanionState('idle');
     setPoSpeech(undefined);
@@ -121,7 +138,7 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
           />
         );
       case 'prompt':
-        return <PromptScreen onSubmit={handleIntentSubmit} />;
+        return <IdleView />;
       case 'config':
         return (
           <ConfigScreen
@@ -143,6 +160,7 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
           <PipelineScreen
             intent={intent}
             onComplete={handlePipelineComplete}
+            onStepsChange={handleStepsChange}
             {...(skipRoles ? { skipRoles } : {})}
             {...(activeSkillIds.length > 0 ? { activeSkillIds } : {})}
             {...(activePluginIds.length > 0 ? { activePluginIds } : {})}
@@ -164,6 +182,7 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
           state={companionState}
           {...(poSpeech !== undefined ? { poSpeech } : {})}
           {...(qaSpeech !== undefined ? { qaSpeech } : {})}
+          {...(guildeSteps.length > 0 ? { guildeSteps } : {})}
         />
 
         <Box width={DIVIDER_W} flexDirection="column">
@@ -174,7 +193,10 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
           <Box flexGrow={1} flexDirection="column">
             {renderView()}
           </Box>
-          {/* Axe 5.2: Incantation bar goes here */}
+          <IncantationBar
+            locked={view !== 'prompt' && view !== 'results'}
+            onSubmit={handleIntentFromBar}
+          />
         </PanelProvider>
       </Box>
     </Box>
