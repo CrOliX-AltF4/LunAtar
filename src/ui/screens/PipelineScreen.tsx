@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
 import type { CompanionState } from '../components/Companion.js';
 import * as orchestrator from '../../orchestrator/index.js';
-import { Header } from '../components/Header.js';
 import { Separator } from '../components/Separator.js';
+import type { OnCompanionChange } from '../workspace/types.js';
 import { StepRow } from '../components/StepRow.js';
 import { Footer } from '../components/Footer.js';
 import { MODEL_CATALOG } from '../../models/catalog.js';
@@ -88,6 +88,8 @@ interface PipelineScreenProps {
   onComplete?: (run: PipelineRun) => void;
   activeSkillIds?: string[];
   activePluginIds?: string[];
+  onCompanionChange?: OnCompanionChange;
+  onStepChange?: (current: number, total: number) => void;
 }
 
 const KEYBINDINGS = [
@@ -103,6 +105,8 @@ export function PipelineScreen({
   onComplete,
   activeSkillIds,
   activePluginIds,
+  onCompanionChange,
+  onStepChange,
 }: PipelineScreenProps) {
   const app = useApp();
   const [steps, setSteps] = useState<PipelineStep[]>(() => buildDefaultSteps(skipRoles));
@@ -133,6 +137,20 @@ export function PipelineScreen({
       return 'A step has failed — review the output below.';
     return undefined;
   }, [steps]);
+
+  useEffect(() => {
+    onCompanionChange?.({
+      state: companionState,
+      poSpeech: intent,
+      ...(companionSpeech !== undefined ? { qaSpeech: companionSpeech } : {}),
+    });
+  }, [companionState, companionSpeech, intent]);
+
+  useEffect(() => {
+    if (isRunning) {
+      onStepChange?.(currentIteration, maxIterations);
+    }
+  }, [currentIteration, maxIterations, isRunning]);
 
   useInput((input, key) => {
     if (showPicker) return; // handled inside ModelPicker
@@ -193,10 +211,6 @@ export function PipelineScreen({
 
   return (
     <Box flexDirection="column">
-      <Header
-        companionState={companionState}
-        {...(companionSpeech !== undefined ? { speech: companionSpeech } : {})}
-      />
       <Separator />
 
       <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>

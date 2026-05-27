@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
 import { listRuns } from '../../storage/index.js';
 import { ResultsScreen } from './ResultsScreen.js';
-import { Header } from '../components/Header.js';
 import { Separator } from '../components/Separator.js';
 import type { PipelineRun } from '../../types/index.js';
 import type { QAOutput } from '../../agents/types.js';
+import type { OnCompanionChange } from '../workspace/types.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -49,16 +49,21 @@ function truncate(str: string, max: number): string {
 
 export interface HistoryScreenProps {
   onRerun?: (intent: string) => void;
+  onCompanionChange?: OnCompanionChange;
 }
 
-export function HistoryScreen({ onRerun }: HistoryScreenProps) {
+export function HistoryScreen({ onRerun, onCompanionChange }: HistoryScreenProps) {
   const app = useApp();
   const [runs, setRuns] = useState<PipelineRun[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [mode, setMode] = useState<'list' | 'detail'>('list');
 
-  React.useEffect(() => {
+  useEffect(() => {
+    onCompanionChange?.({ state: 'idle' });
+  }, []);
+
+  useEffect(() => {
     listRuns()
       .then((r) => {
         setRuns(r);
@@ -95,7 +100,6 @@ export function HistoryScreen({ onRerun }: HistoryScreenProps) {
   if (!loaded) {
     return (
       <Box flexDirection="column">
-        <Header companionState="idle" />
         <Separator />
         <Text color="gray">Loading history...</Text>
       </Box>
@@ -105,7 +109,6 @@ export function HistoryScreen({ onRerun }: HistoryScreenProps) {
   if (runs.length === 0) {
     return (
       <Box flexDirection="column">
-        <Header companionState="idle" />
         <Separator />
         <Text>
           No pipeline runs found. Run <Text color="cyan">lunatar run</Text> to get started.
@@ -116,7 +119,6 @@ export function HistoryScreen({ onRerun }: HistoryScreenProps) {
 
   return (
     <Box flexDirection="column">
-      <Header />
       <Separator />
       <Box flexDirection="column" marginBottom={1}>
         <Text bold>

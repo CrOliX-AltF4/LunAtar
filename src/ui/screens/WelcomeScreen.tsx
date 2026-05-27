@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import chalk from 'chalk';
-import { Header } from '../components/Header.js';
 import { Separator } from '../components/Separator.js';
 import { SetupScreen } from './SetupScreen.js';
 import { GOLD } from '../theme.js';
 import { setApiKey } from '../../providers/config.js';
+import type { OnCompanionChange } from '../workspace/types.js';
 
 type WelcomeMode = 'choose' | 'simple-key' | 'expert';
 
 interface WelcomeScreenProps {
   onComplete: () => void;
+  onCompanionChange?: OnCompanionChange;
 }
 
 const MODES = [
@@ -27,10 +28,23 @@ const MODES = [
   },
 ];
 
-export function WelcomeScreen({ onComplete }: WelcomeScreenProps) {
+export function WelcomeScreen({ onComplete, onCompanionChange }: WelcomeScreenProps) {
   const [mode, setMode] = useState<WelcomeMode>('choose');
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [inputValue, setInputValue] = useState('');
+
+  useEffect(() => {
+    onCompanionChange?.({ state: 'idle', poSpeech: "La forge est froide. Comment l'allumer ?" });
+  }, []);
+
+  useEffect(() => {
+    if (mode === 'simple-key') {
+      onCompanionChange?.({
+        state: 'idle',
+        poSpeech: 'Paste your OpenRouter key to light the forge.',
+      });
+    }
+  }, [mode]);
 
   useInput((input, key) => {
     if (mode === 'simple-key' && key.escape) {
@@ -62,6 +76,7 @@ export function WelcomeScreen({ onComplete }: WelcomeScreenProps) {
         onBack={() => {
           setMode('choose');
         }}
+        {...(onCompanionChange !== undefined ? { onCompanionChange } : {})}
       />
     );
   }
@@ -69,7 +84,6 @@ export function WelcomeScreen({ onComplete }: WelcomeScreenProps) {
   if (mode === 'simple-key') {
     return (
       <Box flexDirection="column">
-        <Header companionState="idle" speech="Paste your OpenRouter key to light the forge." />
         <Separator />
 
         <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>
@@ -113,7 +127,6 @@ export function WelcomeScreen({ onComplete }: WelcomeScreenProps) {
 
   return (
     <Box flexDirection="column">
-      <Header companionState="idle" speech="The forge is cold. How will you light it?" />
       <Separator />
 
       <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>

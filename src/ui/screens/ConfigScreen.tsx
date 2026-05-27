@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import chalk from 'chalk';
-import { Header } from '../components/Header.js';
 import { Separator } from '../components/Separator.js';
 import { GOLD } from '../theme.js';
+import type { OnCompanionChange } from '../workspace/types.js';
 import { SkillRegistry } from '../../skills/registry.js';
 import { PluginRegistry } from '../../plugins/registry.js';
 import type { Skill } from '../../skills/types.js';
@@ -12,6 +12,7 @@ import type { Plugin } from '../../plugins/types.js';
 interface ConfigScreenProps {
   onConfirm: (activeSkillIds: string[], activePluginIds: string[]) => void;
   onBack: () => void;
+  onCompanionChange?: OnCompanionChange;
 }
 
 type Item = { kind: 'skill'; item: Skill } | { kind: 'plugin'; item: Plugin };
@@ -19,7 +20,7 @@ type Item = { kind: 'skill'; item: Skill } | { kind: 'plugin'; item: Plugin };
 const skillRegistry = new SkillRegistry();
 const pluginRegistry = new PluginRegistry();
 
-export function ConfigScreen({ onConfirm, onBack }: ConfigScreenProps) {
+export function ConfigScreen({ onConfirm, onBack, onCompanionChange }: ConfigScreenProps) {
   const allItems: Item[] = [
     ...skillRegistry.getAll().map((s): Item => ({ kind: 'skill', item: s })),
     ...pluginRegistry.getAll().map((p): Item => ({ kind: 'plugin', item: p })),
@@ -27,6 +28,10 @@ export function ConfigScreen({ onConfirm, onBack }: ConfigScreenProps) {
 
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [activeIds, setActiveIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    onCompanionChange?.({ state: 'thinking', poSpeech: 'Pesant ton arsenal...' });
+  }, []);
 
   useInput((input, key) => {
     if (key.upArrow) setSelectedIdx((i) => Math.max(0, i - 1));
@@ -55,7 +60,6 @@ export function ConfigScreen({ onConfirm, onBack }: ConfigScreenProps) {
 
   return (
     <Box flexDirection="column">
-      <Header companionState="thinking" />
       <Separator />
 
       <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>

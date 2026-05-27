@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { render } from 'ink';
 import React from 'react';
-import { App } from '../../ui/App.js';
+import { Workspace } from '../../ui/workspace/Workspace.js';
 import { buildDefaultSteps, parseSkipRoles, applyStepOverrides } from '../../pipeline/steps.js';
 import type { PipelinePreload, PipelineOverride } from '../../pipeline/index.js';
 import { getModelById } from '../../models/catalog.js';
@@ -183,7 +183,7 @@ async function tuiRun(intent?: string, skipRoles?: ReadonlySet<AgentRole>): Prom
     ...(intent ? { initialIntent: intent } : {}),
     ...(skipRoles && skipRoles.size > 0 ? { skipRoles } : {}),
   };
-  const { waitUntilExit } = render(React.createElement(App, props));
+  const { waitUntilExit } = render(React.createElement(Workspace, props));
   await waitUntilExit();
 }
 

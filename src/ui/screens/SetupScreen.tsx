@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
 import TextInput from 'ink-text-input';
-import { Header } from '../components/Header.js';
 import { Separator } from '../components/Separator.js';
+import type { OnCompanionChange } from '../workspace/types.js';
 import type { ProviderName } from '../../types/index.js';
 import { setApiKey, getApiKey } from '../../providers/config.js';
 
@@ -81,9 +81,10 @@ const PROVIDERS: ProviderInfo[] = [
 interface SetupScreenProps {
   onComplete: () => void;
   onBack?: () => void;
+  onCompanionChange?: OnCompanionChange;
 }
 
-export function SetupScreen({ onComplete, onBack }: SetupScreenProps) {
+export function SetupScreen({ onComplete, onBack, onCompanionChange }: SetupScreenProps) {
   const app = useApp();
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [entering, setEntering] = useState(false);
@@ -94,6 +95,10 @@ export function SetupScreen({ onComplete, onBack }: SetupScreenProps) {
 
   const focusedProvider = PROVIDERS[focusedIndex];
   const hasOne = configured.size > 0;
+
+  useEffect(() => {
+    onCompanionChange?.({ state: 'idle', poSpeech: "Arme la forge — tu as besoin d'une clé." });
+  }, []);
 
   useInput((input, key) => {
     if (entering) {
@@ -129,7 +134,6 @@ export function SetupScreen({ onComplete, onBack }: SetupScreenProps) {
 
   return (
     <Box flexDirection="column">
-      <Header companionState="idle" speech="Arm the forge — you need at least one key." />
       <Separator />
 
       <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>

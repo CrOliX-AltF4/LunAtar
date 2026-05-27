@@ -1,10 +1,8 @@
 import { render } from 'ink';
 import React from 'react';
-import { WelcomeScreen } from '../../ui/screens/WelcomeScreen.js';
+import { Workspace } from '../../ui/workspace/Workspace.js';
 
 export async function welcomeCommand(): Promise<void> {
-  const { waitUntilExit } = render(
-    React.createElement(WelcomeScreen, { onComplete: () => process.exit(0) }),
-  );
+  const { waitUntilExit } = render(React.createElement(Workspace, { startOnWelcome: true }));
   await waitUntilExit();
 }
