@@ -33,6 +33,8 @@ export function CompanionColumn({ state, poSpeech, qaSpeech, guildeSteps }: Comp
   const portrait = rows >= 30 ? fullPortrait(state) : compactPortrait(state);
   const hasDialogue = Boolean(poSpeech ?? qaSpeech);
   const hasGuilde = guildeSteps !== undefined && guildeSteps.length > 0;
+  const hasCombustible =
+    guildeSteps !== undefined && guildeSteps.some((s) => s.tokensUsed !== undefined);
 
   return (
     <Box width={COMP_WIDTH} flexDirection="column" paddingX={1} gap={0}>
@@ -116,6 +118,41 @@ export function CompanionColumn({ state, poSpeech, qaSpeech, guildeSteps }: Comp
               </Text>
             );
           })}
+          <Text color="gray" dimColor>
+            {'─'.repeat(INNER)}
+          </Text>
+        </Box>
+      )}
+
+      {/* Combustible section */}
+      {hasCombustible && (
+        <Box flexDirection="column" marginTop={1} gap={0}>
+          <Text color="gray" dimColor>
+            {'─'.repeat(INNER)}
+          </Text>
+          <Text color="gray" dimColor>
+            {'  COMBUSTIBLE'}
+          </Text>
+          {guildeSteps
+            .filter((s) => s.tokensUsed !== undefined)
+            .map((step) => {
+              const label = ROLE_LABELS[step.role];
+              const tokens = step.tokensUsed ?? 0;
+              const cost = step.costUsd ?? 0;
+              const tokStr = tokens >= 1000 ? `${(tokens / 1000).toFixed(1)}k` : String(tokens);
+              const costStr = cost < 0.01 ? `$${(cost * 1000).toFixed(2)}m` : `$${cost.toFixed(4)}`;
+              return (
+                <Text key={step.id}>
+                  <Text color="gray" dimColor>
+                    {label}{' '}
+                  </Text>
+                  <Text color={STATUS_COLORS[step.status]}>{tokStr.padStart(5)} </Text>
+                  <Text color="gray" dimColor>
+                    {costStr}
+                  </Text>
+                </Text>
+              );
+            })}
           <Text color="gray" dimColor>
             {'─'.repeat(INNER)}
           </Text>

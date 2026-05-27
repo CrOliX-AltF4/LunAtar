@@ -5,9 +5,15 @@ import path from 'node:path';
 import { useSystemMetrics } from '../hooks/useSystemMetrics.js';
 import packageJson from '../../../package.json' assert { type: 'json' };
 import type { CompanionState } from '../components/Companion.js';
+import { GOLD } from '../theme.js';
 
 const { version } = packageJson;
 const BRAND = passion("⚒ Lun'Atar");
+
+function xpBar(current: number, total: number): string {
+  const filled = total > 0 ? Math.round((current / total) * 8) : 0;
+  return '█'.repeat(filled) + '░'.repeat(8 - filled);
+}
 
 const WEATHER: Record<CompanionState, string> = {
   idle: '❄  Forge froide',
@@ -52,6 +58,15 @@ export function TitleBar({ companionState, currentStep, totalSteps }: TitleBarPr
             <Text color="gray" dimColor>
               {etage}
             </Text>
+          </>
+        )}
+        {currentStep !== undefined && totalSteps !== undefined && (
+          <>
+            <Text color="gray">·</Text>
+            <Text color="gray" dimColor>
+              XP{' '}
+            </Text>
+            <Text color={GOLD}>{xpBar(currentStep, totalSteps)}</Text>
           </>
         )}
         <Text color="gray">·</Text>
