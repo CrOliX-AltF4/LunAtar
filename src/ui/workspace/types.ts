@@ -11,7 +11,7 @@ export type WorkspaceView =
   | 'config'
   | 'pipeline'
   | 'results'
-  | 'quetes';
+  | 'history';
 
 export interface CompanionUpdate {
   state: CompanionState;
