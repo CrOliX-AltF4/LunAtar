@@ -29,7 +29,7 @@ function readMemory(): Pick<SystemMetrics, 'memUsedMb' | 'memTotalMb'> {
   };
 }
 
-export function useSystemMetrics(intervalMs = 2000): SystemMetrics {
+export function useSystemMetrics(): SystemMetrics {
   const [metrics, setMetrics] = useState<SystemMetrics>(() => ({
     cpuUsagePercent: 0,
     ...readMemory(),
@@ -37,26 +37,22 @@ export function useSystemMetrics(intervalMs = 2000): SystemMetrics {
   }));
 
   useEffect(() => {
-    let prev = sampleCpu();
-
-    const timer = setInterval(() => {
+    const prev = sampleCpu();
+    const id = setTimeout(() => {
       const curr = sampleCpu();
       const idleDiff = curr.idle - prev.idle;
       const totalDiff = curr.total - prev.total;
       const cpu = totalDiff === 0 ? 0 : Math.round((1 - idleDiff / totalDiff) * 100);
-      prev = curr;
-
       setMetrics({
         cpuUsagePercent: Math.max(0, Math.min(100, cpu)),
         ...readMemory(),
         timestamp: Date.now(),
       });
-    }, intervalMs);
-
+    }, 500);
     return () => {
-      clearInterval(timer);
+      clearTimeout(id);
     };
-  }, [intervalMs]);
+  }, []);
 
   return metrics;
 }
