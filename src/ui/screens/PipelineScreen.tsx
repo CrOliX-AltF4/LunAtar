@@ -4,6 +4,7 @@ import type { CompanionState } from '../components/Companion.js';
 import * as orchestrator from '../../orchestrator/index.js';
 import { Separator } from '../components/Separator.js';
 import type { OnCompanionChange, OnStepsChange } from '../workspace/types.js';
+import { ParcheminView } from '../workspace/ParcheminView.js';
 import { StepRow } from '../components/StepRow.js';
 import { Footer } from '../components/Footer.js';
 import { MODEL_CATALOG } from '../../models/catalog.js';
@@ -229,20 +230,24 @@ export function PipelineScreen({
         </Box>
 
         {/* Steps */}
-        <Box flexDirection="column" marginTop={1} gap={0}>
-          {steps.map((step, i) => (
-            <StepRow
-              key={step.id}
-              step={step}
-              focused={i === focusedIndex}
-              stepNumber={i + 1}
-              totalSteps={steps.length}
-              {...(step.role === 'dev' || step.role === 'qa'
-                ? { iteration: currentIteration, maxIterations }
-                : {})}
-            />
-          ))}
-        </Box>
+        {isRunning ? (
+          <ParcheminView steps={steps} />
+        ) : (
+          <Box flexDirection="column" marginTop={1} gap={0}>
+            {steps.map((step, i) => (
+              <StepRow
+                key={step.id}
+                step={step}
+                focused={i === focusedIndex}
+                stepNumber={i + 1}
+                totalSteps={steps.length}
+                {...(step.role === 'dev' || step.role === 'qa'
+                  ? { iteration: currentIteration, maxIterations }
+                  : {})}
+              />
+            ))}
+          </Box>
+        )}
       </Box>
 
       {/* Model picker overlay */}
