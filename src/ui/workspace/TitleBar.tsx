@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import { passion } from 'gradient-string';
 import path from 'node:path';
 import { useSystemMetrics } from '../hooks/useSystemMetrics.js';
 import packageJson from '../../../package.json' assert { type: 'json' };
 import type { CompanionState } from '../components/Companion.js';
-import { GOLD } from '../theme.js';
+import { GOLD, forgeronLevel } from '../theme.js';
+import { listRuns } from '../../storage/index.js';
 
 const { version } = packageJson;
 const BRAND = passion("⚒ Lun'Atar");
@@ -31,6 +32,13 @@ interface TitleBarProps {
 
 export function TitleBar({ companionState, currentStep, totalSteps }: TitleBarProps) {
   const { cpuUsagePercent, memUsedMb, memTotalMb } = useSystemMetrics();
+  const [level, setLevel] = useState(1);
+
+  useEffect(() => {
+    void listRuns().then((runs) => {
+      setLevel(forgeronLevel(runs.length));
+    });
+  }, []);
   const projectName = path.basename(process.cwd());
   const cpuColor = cpuUsagePercent > 80 ? 'red' : cpuUsagePercent > 50 ? 'yellow' : 'green';
   const memUsedGb = (memUsedMb / 1024).toFixed(1);
@@ -75,6 +83,12 @@ export function TitleBar({ companionState, currentStep, totalSteps }: TitleBarPr
         </Text>
       </Box>
       <Box gap={2}>
+        <Box gap={0}>
+          <Text color="gray" dimColor>
+            Forgeron Nv.
+          </Text>
+          <Text color={GOLD}>{String(level)}</Text>
+        </Box>
         <Text color="gray" dimColor>
           v{version}
         </Text>
