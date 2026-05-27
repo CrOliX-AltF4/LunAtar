@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
 import TextInput from 'ink-text-input';
 import { Header } from '../components/Header.js';
+import { Separator } from '../components/Separator.js';
 import type { ProviderName } from '../../types/index.js';
 import { setApiKey, getApiKey } from '../../providers/config.js';
 
@@ -13,6 +14,7 @@ interface ProviderInfo {
   url: string;
   free: boolean;
   envVar: string;
+  desc: string;
 }
 
 const PROVIDERS: ProviderInfo[] = [
@@ -22,14 +24,23 @@ const PROVIDERS: ProviderInfo[] = [
     url: 'openrouter.ai',
     free: true,
     envVar: 'OPENROUTER_API_KEY',
+    desc: 'Gateway to 200+ models — one key, no credit card required to start',
   },
-  { name: 'groq', label: 'Groq', url: 'console.groq.com', free: true, envVar: 'GROQ_API_KEY' },
+  {
+    name: 'groq',
+    label: 'Groq',
+    url: 'console.groq.com',
+    free: true,
+    envVar: 'GROQ_API_KEY',
+    desc: 'Ultra-fast LPU inference (Llama, Mixtral) — free tier, great for dev',
+  },
   {
     name: 'claude',
     label: 'Claude',
     url: 'console.anthropic.com',
     free: false,
     envVar: 'ANTHROPIC_API_KEY',
+    desc: "Anthropic's Claude family — best complex reasoning, paid only",
   },
   {
     name: 'openai',
@@ -37,13 +48,15 @@ const PROVIDERS: ProviderInfo[] = [
     url: 'platform.openai.com',
     free: false,
     envVar: 'OPENAI_API_KEY',
+    desc: 'GPT-4o, o1 — industry standard, paid only',
   },
   {
     name: 'gemini',
     label: 'Gemini',
     url: 'aistudio.google.com',
     free: true,
-    envVar: 'GOOGLE_API_KEY',
+    envVar: 'GEMINI_API_KEY',
+    desc: 'Google Gemini — free tier via AI Studio (GEMINI_API_KEY)',
   },
   {
     name: 'nim',
@@ -51,13 +64,15 @@ const PROVIDERS: ProviderInfo[] = [
     url: 'build.nvidia.com',
     free: true,
     envVar: 'NIM_API_KEY',
+    desc: 'NVIDIA hosted models — sign up at build.nvidia.com, free tier available',
   },
   {
     name: 'ollama',
     label: 'Ollama',
-    url: 'localhost:11434',
+    url: 'ollama.ai',
     free: true,
-    envVar: 'OLLAMA_HOST',
+    envVar: '(none)',
+    desc: 'Local models on your machine — no key, no cost, install from ollama.ai',
   },
 ];
 
@@ -65,9 +80,10 @@ const PROVIDERS: ProviderInfo[] = [
 
 interface SetupScreenProps {
   onComplete: () => void;
+  onBack?: () => void;
 }
 
-export function SetupScreen({ onComplete }: SetupScreenProps) {
+export function SetupScreen({ onComplete, onBack }: SetupScreenProps) {
   const app = useApp();
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [entering, setEntering] = useState(false);
@@ -80,7 +96,17 @@ export function SetupScreen({ onComplete }: SetupScreenProps) {
   const hasOne = configured.size > 0;
 
   useInput((input, key) => {
-    if (entering) return;
+    if (entering) {
+      if (key.escape) {
+        setInputValue('');
+        setEntering(false);
+      }
+      return;
+    }
+    if (key.escape) {
+      if (onBack) onBack();
+      return;
+    }
     if (input === 'q') app.exit();
     if (key.upArrow) setFocusedIndex((i) => Math.max(0, i - 1));
     if (key.downArrow) setFocusedIndex((i) => Math.min(PROVIDERS.length - 1, i + 1));
@@ -102,12 +128,13 @@ export function SetupScreen({ onComplete }: SetupScreenProps) {
   };
 
   return (
-    <Box flexDirection="column" padding={1} gap={1}>
-      <Header />
+    <Box flexDirection="column">
+      <Header companionState="idle" speech="Arm the forge — you need at least one key." />
+      <Separator />
 
-      <Box flexDirection="column" paddingX={1} gap={1}>
-        <Text color="cyan" bold>
-          Provider setup
+      <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>
+        <Text color="white" bold>
+          Choose a provider
         </Text>
         <Text color="gray">
           You need at least one API key to run pipelines. Groq and Gemini are free.
@@ -119,23 +146,32 @@ export function SetupScreen({ onComplete }: SetupScreenProps) {
             const isConfigured = configured.has(p.name);
             const isFocused = i === focusedIndex;
             return (
-              <Box key={p.name} gap={2}>
-                <Text color="cyan">{isFocused ? '▶' : ' '}</Text>
-                <Box width={2}>
-                  <Text color={isConfigured ? 'green' : 'gray'}>{isConfigured ? '✓' : '○'}</Text>
-                </Box>
-                <Box width={8}>
-                  <Text color={isFocused ? 'white' : 'gray'} bold={isFocused}>
-                    {p.label}
+              <Box key={p.name} flexDirection="column">
+                <Box gap={2}>
+                  <Text color="yellow">{isFocused ? '▶' : ' '}</Text>
+                  <Box width={2}>
+                    <Text color={isConfigured ? 'green' : 'gray'}>{isConfigured ? '✓' : '○'}</Text>
+                  </Box>
+                  <Box width={12}>
+                    <Text color={isFocused ? 'white' : 'gray'} bold={isFocused}>
+                      {p.label}
+                    </Text>
+                  </Box>
+                  <Text color="gray" dimColor={!isFocused}>
+                    {p.url}
                   </Text>
+                  {p.free && (
+                    <Text color="green" dimColor>
+                      free
+                    </Text>
+                  )}
                 </Box>
-                <Text color="gray" dimColor={!isFocused}>
-                  {p.url}
-                </Text>
-                {p.free && (
-                  <Text color="green" dimColor>
-                    free
-                  </Text>
+                {isFocused && (
+                  <Box marginLeft={5}>
+                    <Text color="gray" dimColor>
+                      {p.desc}
+                    </Text>
+                  </Box>
                 )}
               </Box>
             );
@@ -155,31 +191,38 @@ export function SetupScreen({ onComplete }: SetupScreenProps) {
           >
             <Text color="gray">
               {focusedProvider.name === 'ollama'
-                ? 'Ollama doit tourner localement. Installez-le sur ollama.ai. Pas de clé requise.'
-                : `Get your key at ${focusedProvider.url} or set env var ${focusedProvider.envVar}`}
+                ? 'No key needed — Ollama runs locally. Install from ollama.ai then press Enter.'
+                : `Get your key at ${focusedProvider.url} · env var: ${focusedProvider.envVar}`}
             </Text>
             <Box gap={1} marginTop={1}>
-              <Text color="cyan">›</Text>
+              <Text color="yellow">›</Text>
               <TextInput
                 value={inputValue}
                 onChange={setInputValue}
                 onSubmit={handleSubmit}
-                placeholder="paste your API key and press Enter"
-                mask="*"
+                placeholder={
+                  focusedProvider.name === 'ollama'
+                    ? 'press Enter to confirm'
+                    : 'paste your API key…'
+                }
+                mask={focusedProvider.name === 'ollama' ? undefined : '*'}
               />
             </Box>
             <Text color="gray" dimColor>
-              Press <Text color="cyan">Enter</Text> to save · leave empty to cancel
+              <Text color="yellow">[↵]</Text> save · <Text color="yellow">[Esc]</Text> cancel
             </Text>
           </Box>
         )}
 
-        {/* Alt: .env file */}
+        {/* Alt: persist via CLI or .env */}
         {!entering && (
-          <Box marginTop={1}>
+          <Box marginTop={1} flexDirection="column" gap={0}>
             <Text color="gray" dimColor>
-              Alternatively, create a <Text color="white">.env</Text> file in your project with{' '}
-              <Text color="white">GROQ_API_KEY=...</Text>
+              Persist a key: <Text color="white">lunatar config set groq.apiKey sk-...</Text>
+            </Text>
+            <Text color="gray" dimColor>
+              Or add to your project&apos;s <Text color="white">.env</Text>:{' '}
+              <Text color="white">GROQ_API_KEY=sk-...</Text>
             </Text>
           </Box>
         )}
@@ -188,18 +231,23 @@ export function SetupScreen({ onComplete }: SetupScreenProps) {
       {/* Footer */}
       <Box gap={3} paddingX={1} marginTop={1}>
         <Text color="gray">
-          <Text color="cyan">[↑↓]</Text> navigate
+          <Text color="yellow">[↑↓]</Text> navigate
         </Text>
         <Text color="gray">
-          <Text color="cyan">[↵]</Text> enter key
+          <Text color="yellow">[↵]</Text> enter key
         </Text>
         {hasOne && (
           <Text color="gray">
             <Text color="green">[c]</Text> continue
           </Text>
         )}
+        {onBack && (
+          <Text color="gray">
+            <Text color="yellow">[Esc]</Text> back
+          </Text>
+        )}
         <Text color="gray">
-          <Text color="cyan">[q]</Text> quit
+          <Text color="yellow">[q]</Text> quit
         </Text>
       </Box>
     </Box>

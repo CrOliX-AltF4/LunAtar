@@ -3,6 +3,7 @@ import { Box, Text, useInput, useApp } from 'ink';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { Header } from '../components/Header.js';
+import { Separator } from '../components/Separator.js';
 import { STATUS_COLORS } from '../theme.js';
 import type { PipelineRun, AgentRole } from '../../types/index.js';
 import type { DevOutput, POOutput, PlannerOutput, QAOutput, QAIssue } from '../../agents/types.js';
@@ -476,10 +477,11 @@ export function ResultsScreen({ run, onNewPipeline, readOnly }: ResultsScreenPro
   const runFailed = run.status === 'failed';
 
   return (
-    <Box flexDirection="column" padding={1} gap={1}>
-      <Header />
+    <Box flexDirection="column">
+      <Header companionState="done" />
+      <Separator />
 
-      <Box flexDirection="column" paddingX={1} gap={1}>
+      <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>
         {/* Intent */}
         <Box gap={1}>
           <Text color="gray">{runFailed ? 'Failed:' : 'Completed:'}</Text>

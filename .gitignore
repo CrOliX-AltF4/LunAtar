@@ -42,3 +42,7 @@ runs/
 # Local dev artifacts
 docs/superpowers/
 *.db
+
+# Design reference assets
+ref/
+sprite_out.txt

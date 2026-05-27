@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
+import type { CompanionState } from '../components/Companion.js';
 import * as orchestrator from '../../orchestrator/index.js';
 import { Header } from '../components/Header.js';
+import { Separator } from '../components/Separator.js';
 import { StepRow } from '../components/StepRow.js';
 import { Footer } from '../components/Footer.js';
 import { MODEL_CATALOG } from '../../models/catalog.js';
@@ -110,6 +112,28 @@ export function PipelineScreen({
   const [currentIteration, setCurrentIteration] = useState(1);
   const [maxIterations, setMaxIterations] = useState(2);
 
+  const companionState = useMemo((): CompanionState => {
+    if (steps.some((s) => s.status === 'failed')) return 'error';
+    if (steps.every((s) => s.status === 'completed' || s.status === 'skipped')) return 'done';
+    if (isRunning) return 'forging';
+    return 'idle';
+  }, [steps, isRunning]);
+
+  const companionSpeech = useMemo((): string | undefined => {
+    const AGENT_SPEECH: Record<AgentRole, string> = {
+      po: 'Clarifying your request...',
+      planner: 'Architecting the solution...',
+      dev: 'Forging the code...',
+      qa: 'Validating the work...',
+    };
+    const running = steps.find((s) => s.status === 'running');
+    if (running) return AGENT_SPEECH[running.role];
+    if (steps.every((s) => s.status === 'pending')) return 'Ready. Press Enter to fire the forge.';
+    if (steps.some((s) => s.status === 'failed'))
+      return 'A step has failed — review the output below.';
+    return undefined;
+  }, [steps]);
+
   useInput((input, key) => {
     if (showPicker) return; // handled inside ModelPicker
     if (isRunning) return; // lock input while pipeline is executing
@@ -168,10 +192,11 @@ export function PipelineScreen({
   const focusedStep = steps[focusedIndex];
 
   return (
-    <Box flexDirection="column" padding={1} gap={1}>
-      <Header />
+    <Box flexDirection="column">
+      <Header companionState={companionState} speech={companionSpeech} />
+      <Separator />
 
-      <Box flexDirection="column" paddingX={1} gap={1}>
+      <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>
         {/* Intent */}
         <Box gap={1}>
           <Text color="gray">Pipeline:</Text>

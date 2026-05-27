@@ -8,5 +8,5 @@ export function isBannerDisabled(): boolean {
 
 export function printBanner(): void {
   if (isBannerDisabled()) return;
-  process.stderr.write(`  ◆ Lun'Atar v${version}  ·  intent → code\n\n`);
+  process.stderr.write(`  ⚒  Lun'Atar v${version}  ·  intent → code\n\n`);
 }

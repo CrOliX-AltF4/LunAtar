@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
+import chalk from 'chalk';
+import { Header } from '../components/Header.js';
+import { Separator } from '../components/Separator.js';
+import { GOLD } from '../theme.js';
 import { SkillRegistry } from '../../skills/registry.js';
 import { PluginRegistry } from '../../plugins/registry.js';
 import type { Skill } from '../../skills/types.js';
@@ -50,32 +54,55 @@ export function ConfigScreen({ onConfirm, onBack }: ConfigScreenProps) {
   });
 
   return (
-    <Box flexDirection="column" padding={1} gap={1}>
-      <Box paddingX={1}>
-        <Text bold color="cyan">
-          Skills & Plugins
+    <Box flexDirection="column">
+      <Header companionState="thinking" />
+      <Separator />
+
+      <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>
+        <Text color="white" bold>
+          Choose your arsenal
         </Text>
-        <Text dimColor> Space = toggle · Enter = confirm · q = back</Text>
-      </Box>
-      <Box flexDirection="column" paddingX={1} gap={0}>
-        {allItems.map((entry, idx) => {
-          const { item } = entry;
-          const isSelected = idx === selectedIdx;
-          const isActive = activeIds.has(item.id);
-          return (
-            <Box key={item.id}>
-              <Text {...(isSelected ? { color: 'cyan' as const } : {})}>
-                {isSelected ? '▸ ' : '  '}
-                {isActive ? '[✓] ' : '[ ] '}
-                <Text bold={isActive}>{item.name}</Text>
-                <Text dimColor>
-                  {' '}
+
+        <Box flexDirection="column" gap={0}>
+          {allItems.map((entry, idx) => {
+            const { item } = entry;
+            const isSelected = idx === selectedIdx;
+            const isActive = activeIds.has(item.id);
+            return (
+              <Box key={item.id} gap={2}>
+                <Text>{isSelected ? chalk.hex(GOLD)('▶') : ' '}</Text>
+                <Text color={isActive ? 'white' : 'gray'}>
+                  {isActive ? chalk.hex(GOLD)('[✓]') : chalk.gray('[ ]')}
+                </Text>
+                <Text color={isSelected ? 'white' : 'gray'} bold={isSelected}>
+                  {item.name}
+                </Text>
+                <Text color="gray" dimColor>
                   {entry.kind} · {item.role}
                 </Text>
-              </Text>
-            </Box>
-          );
-        })}
+              </Box>
+            );
+          })}
+        </Box>
+
+        <Box gap={3} marginTop={1}>
+          <Text color="gray" dimColor>
+            <Text>{chalk.hex(GOLD)('[↑↓]')}</Text>
+            <Text color="gray"> navigate</Text>
+          </Text>
+          <Text color="gray" dimColor>
+            <Text>{chalk.hex(GOLD)('[space]')}</Text>
+            <Text color="gray"> toggle</Text>
+          </Text>
+          <Text color="gray" dimColor>
+            <Text>{chalk.hex(GOLD)('[↵]')}</Text>
+            <Text color="gray"> confirm</Text>
+          </Text>
+          <Text color="gray" dimColor>
+            <Text>{chalk.hex(GOLD)('[Esc]')}</Text>
+            <Text color="gray"> back</Text>
+          </Text>
+        </Box>
       </Box>
     </Box>
   );
