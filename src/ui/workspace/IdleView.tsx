@@ -62,6 +62,12 @@ export function IdleView() {
         </Box>
 
         <ForgeHints cols={cols} />
+
+        <Box marginTop={1} paddingX={1}>
+          <Text color="gray" dimColor>
+            <Text color="gray">[h]</Text> annales de forge
+          </Text>
+        </Box>
       </Box>
     </Box>
   );

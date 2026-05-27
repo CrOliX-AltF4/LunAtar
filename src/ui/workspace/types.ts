@@ -4,7 +4,14 @@ import type { PipelineStep } from '../../types/index.js';
 export const COMP_WIDTH = 30;
 export const DIVIDER_W = 1;
 
-export type WorkspaceView = 'welcome' | 'setup' | 'prompt' | 'config' | 'pipeline' | 'results';
+export type WorkspaceView =
+  | 'welcome'
+  | 'setup'
+  | 'prompt'
+  | 'config'
+  | 'pipeline'
+  | 'results'
+  | 'quetes';
 
 export interface CompanionUpdate {
   state: CompanionState;

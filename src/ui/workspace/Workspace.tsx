@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, useStdout } from 'ink';
+import { Box, Text, useStdout, useInput } from 'ink';
 import { TitleBar } from './TitleBar.js';
 import { CompanionColumn } from './CompanionColumn.js';
 import { PanelProvider } from './PanelContext.js';
@@ -11,6 +11,7 @@ import { SetupScreen } from '../screens/SetupScreen.js';
 import { ConfigScreen } from '../screens/ConfigScreen.js';
 import { WelcomeScreen } from '../screens/WelcomeScreen.js';
 import { listConfiguredProviders } from '../../providers/config.js';
+import { QuetesView } from './QuetesView.js';
 import { COMP_WIDTH, DIVIDER_W } from './types.js';
 import type { WorkspaceView } from './types.js';
 import type { CompanionState } from '../components/Companion.js';
@@ -112,6 +113,14 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
     setQaSpeech(undefined);
   };
 
+  // ── Keybindings ─────────────────────────────────────────────────────────────
+  useInput((input) => {
+    if (input === 'h' && view === 'prompt') {
+      setView('quetes');
+      setCompanionState('idle');
+    }
+  });
+
   // ── Layout ──────────────────────────────────────────────────────────────────
   const rightCols = Math.max(20, cols - COMP_WIDTH - DIVIDER_W);
 
@@ -157,6 +166,24 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
         return completedRun ? (
           <ResultsScreen run={completedRun} onNewPipeline={handleNewPipeline} />
         ) : null;
+      case 'quetes':
+        return (
+          <QuetesView
+            onOpenRun={(run) => {
+              setCompletedRun(run);
+              setView('results');
+              setCompanionState('done');
+              setPoSpeech(run.intent);
+              setQaSpeech('Annale chargée.');
+            }}
+            onBack={() => {
+              setView('prompt');
+              setCompanionState('idle');
+              setPoSpeech(undefined);
+              setQaSpeech(undefined);
+            }}
+          />
+        );
       default:
         return (
           <PipelineScreen
