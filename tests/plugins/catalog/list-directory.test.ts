@@ -20,14 +20,14 @@ describe('listDirectoryPlugin', () => {
   });
 
   it('resolves path relative to context.cwd', async () => {
-    mockReaddir.mockResolvedValue([] as unknown as Awaited<ReturnType<typeof readdir>>);
+    mockReaddir.mockResolvedValue([]);
     await listDirectoryPlugin.handler({ path: 'src' }, CTX);
     const { join } = await import('node:path');
     expect(mockReaddir).toHaveBeenCalledWith(join('/project', 'src'));
   });
 
   it('returns "(empty)" for an empty directory', async () => {
-    mockReaddir.mockResolvedValue([] as unknown as Awaited<ReturnType<typeof readdir>>);
+    mockReaddir.mockResolvedValue([]);
     const result = await listDirectoryPlugin.handler({ path: '.' }, CTX);
     expect(result).toBe('(empty)');
   });

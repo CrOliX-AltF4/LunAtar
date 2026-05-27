@@ -64,7 +64,7 @@ describe('saveRun()', () => {
 
 describe('loadRun()', () => {
   it('returns the parsed run when the file exists', async () => {
-    mockReadFile.mockResolvedValueOnce(JSON.stringify(RUN_A) as never);
+    mockReadFile.mockResolvedValueOnce(JSON.stringify(RUN_A));
     const result = await loadRun('run-a');
     expect(result).toEqual(RUN_A);
   });
@@ -76,7 +76,7 @@ describe('loadRun()', () => {
   });
 
   it('reads from the correct path', async () => {
-    mockReadFile.mockResolvedValueOnce(JSON.stringify(RUN_A) as never);
+    mockReadFile.mockResolvedValueOnce(JSON.stringify(RUN_A));
     await loadRun('run-a');
     expect(mockReadFile).toHaveBeenCalledWith(expect.stringContaining('run-a.json'), 'utf8');
   });
@@ -88,8 +88,8 @@ describe('listRuns()', () => {
   it('returns runs sorted by createdAt descending (newest first)', async () => {
     mockReaddir.mockResolvedValueOnce(['run-b.json', 'run-a.json'] as never);
     mockReadFile
-      .mockResolvedValueOnce(JSON.stringify(RUN_B) as never)
-      .mockResolvedValueOnce(JSON.stringify(RUN_A) as never);
+      .mockResolvedValueOnce(JSON.stringify(RUN_B))
+      .mockResolvedValueOnce(JSON.stringify(RUN_A));
 
     const runs = await listRuns();
     expect(runs[0]?.id).toBe('run-a'); // 2026-01-02 is newer
@@ -98,7 +98,7 @@ describe('listRuns()', () => {
 
   it('skips non-.json files', async () => {
     mockReaddir.mockResolvedValueOnce(['run-a.json', '.DS_Store', 'notes.txt'] as never);
-    mockReadFile.mockResolvedValueOnce(JSON.stringify(RUN_A) as never);
+    mockReadFile.mockResolvedValueOnce(JSON.stringify(RUN_A));
 
     const runs = await listRuns();
     expect(runs).toHaveLength(1);
@@ -107,8 +107,8 @@ describe('listRuns()', () => {
   it('skips corrupted files silently', async () => {
     mockReaddir.mockResolvedValueOnce(['run-a.json', 'corrupt.json'] as never);
     mockReadFile
-      .mockResolvedValueOnce(JSON.stringify(RUN_A) as never)
-      .mockResolvedValueOnce('{ not valid json' as never);
+      .mockResolvedValueOnce(JSON.stringify(RUN_A))
+      .mockResolvedValueOnce('{ not valid json');
 
     const runs = await listRuns();
     expect(runs).toHaveLength(1);

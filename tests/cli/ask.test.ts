@@ -105,7 +105,7 @@ describe('askCommand', () => {
       name: 'groq' as const,
       isConfigured: vi.fn().mockReturnValue(false),
       complete: vi.fn(),
-    } as never);
+    });
 
     await askCommand('test', { provider: 'groq' });
 
@@ -123,7 +123,7 @@ describe('askCommand', () => {
       estimatedCostUsd: 0,
     });
     mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue('file content' as never);
+    mockReadFileSync.mockReturnValue('file content');
     const complete = vi.fn().mockResolvedValue({ content: 'ok' });
     mockGetProvider.mockReturnValue(makeProvider(complete) as never);
 

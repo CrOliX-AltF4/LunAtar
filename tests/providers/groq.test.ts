@@ -15,9 +15,7 @@ vi.mock('groq-sdk', () => {
 });
 
 const { getApiKey } = await import('../../src/providers/config.js');
-const { GroqProvider } = (await import('../../src/providers/groq.js')) as {
-  GroqProvider: typeof GroqProviderType;
-};
+const { GroqProvider } = await import('../../src/providers/groq.js');
 
 const mockGetApiKey = vi.mocked(getApiKey);
 

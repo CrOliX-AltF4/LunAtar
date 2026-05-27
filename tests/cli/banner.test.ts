@@ -7,7 +7,7 @@ describe('banner', () => {
   beforeEach(() => {
     originalEnv = process.env['LUNATAR_NO_BANNER'];
     delete process.env['LUNATAR_NO_BANNER'];
-    writeSpy = vi.spyOn(process.stderr, 'write').mockImplementation((() => true) as never);
+    writeSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
   });
 
   afterEach(() => {
