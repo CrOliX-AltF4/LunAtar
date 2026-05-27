@@ -27,7 +27,7 @@ export class GroqProvider implements LLMProvider {
           role: 'tool' as const,
           tool_call_id: m.toolCallId,
           content: m.content,
-        } as Groq.Chat.ChatCompletionMessageParam);
+        });
       } else if (m.role === 'assistant' && m.toolCalls && m.toolCalls.length > 0) {
         messages.push({
           role: 'assistant' as const,
@@ -37,7 +37,7 @@ export class GroqProvider implements LLMProvider {
             type: 'function' as const,
             function: { name: tc.name, arguments: JSON.stringify(tc.input) },
           })),
-        } as Groq.Chat.ChatCompletionMessageParam);
+        });
       } else {
         messages.push({ role: m.role, content: m.content });
       }

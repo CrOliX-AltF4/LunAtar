@@ -1,5 +1,18 @@
 import type { PipelineStepStatus, ProviderName, AgentRole } from '../types/index.js';
 
+// ─── Brand ────────────────────────────────────────────────────────────────────
+
+export const BRAND_COLOR = 'yellow' as const; // Ink named color (used as prop)
+export const GOLD = '#C8A415' as const; // amber/gold — active, focus
+export const COPPER = '#B87333' as const; // copper/ember — borders, structure
+export const BRAND_NAME = "Lun'Atar" as const;
+export const BRAND_TAGLINE = 'intent → code' as const;
+
+// ─── Spinner ──────────────────────────────────────────────────────────────────
+
+export const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'] as const;
+export const SPINNER_INTERVAL_MS = 80;
+
 // ─── Status icons ─────────────────────────────────────────────────────────────
 
 export const STATUS_ICONS: Record<PipelineStepStatus, string> = {

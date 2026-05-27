@@ -3,6 +3,7 @@ import { Box, Text, useInput, useApp } from 'ink';
 import { listRuns } from '../../storage/index.js';
 import { ResultsScreen } from './ResultsScreen.js';
 import { Header } from '../components/Header.js';
+import { Separator } from '../components/Separator.js';
 import type { PipelineRun } from '../../types/index.js';
 import type { QAOutput } from '../../agents/types.js';
 
@@ -94,7 +95,8 @@ export function HistoryScreen({ onRerun }: HistoryScreenProps) {
   if (!loaded) {
     return (
       <Box flexDirection="column">
-        <Header />
+        <Header companionState="idle" />
+        <Separator />
         <Text color="gray">Loading history...</Text>
       </Box>
     );
@@ -103,7 +105,8 @@ export function HistoryScreen({ onRerun }: HistoryScreenProps) {
   if (runs.length === 0) {
     return (
       <Box flexDirection="column">
-        <Header />
+        <Header companionState="idle" />
+        <Separator />
         <Text>
           No pipeline runs found. Run <Text color="cyan">lunatar run</Text> to get started.
         </Text>
@@ -114,6 +117,7 @@ export function HistoryScreen({ onRerun }: HistoryScreenProps) {
   return (
     <Box flexDirection="column">
       <Header />
+      <Separator />
       <Box flexDirection="column" marginBottom={1}>
         <Text bold>
           {'  '}

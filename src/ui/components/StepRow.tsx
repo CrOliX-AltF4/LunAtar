@@ -1,23 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import type { PipelineStep } from '../../types/index.js';
-import { STATUS_ICONS, STATUS_COLORS, PROVIDER_COLORS, ROLE_LABELS } from '../theme.js';
+import {
+  STATUS_ICONS,
+  STATUS_COLORS,
+  PROVIDER_COLORS,
+  ROLE_LABELS,
+  SPINNER_FRAMES,
+  SPINNER_INTERVAL_MS,
+  BRAND_COLOR,
+} from '../theme.js';
 import { getModelById } from '../../models/catalog.js';
 import { formatStepBreakdown } from '../formatters.js';
-
-const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 function Spinner() {
   const [frame, setFrame] = useState(0);
   useEffect(() => {
     const t = setInterval(() => {
       setFrame((f) => (f + 1) % SPINNER_FRAMES.length);
-    }, 80);
+    }, SPINNER_INTERVAL_MS);
     return () => {
       clearInterval(t);
     };
   }, []);
-  return <Text color="cyan">{SPINNER_FRAMES[frame]}</Text>;
+  return <Text color={BRAND_COLOR}>{SPINNER_FRAMES[frame]}</Text>;
 }
 
 /** Counts elapsed seconds from the moment it becomes active. Resets on deactivation. */
@@ -39,7 +45,7 @@ function ElapsedTimer({ active }: { active: boolean }) {
   }, [active]);
 
   if (!active) return null;
-  return <Text color="cyan"> · {elapsed}s</Text>;
+  return <Text color={BRAND_COLOR}> · {elapsed}s</Text>;
 }
 
 interface StepRowProps {
@@ -78,7 +84,7 @@ export function StepRow({
     <Box flexDirection="column">
       <Box gap={1}>
         {/* Focus indicator */}
-        <Text color="cyan">{focused ? '▶' : ' '}</Text>
+        <Text color={BRAND_COLOR}>{focused ? '▶' : ' '}</Text>
 
         {/* Status icon / spinner */}
         <Box width={2}>
@@ -88,7 +94,7 @@ export function StepRow({
         {/* [N/total] badge — visible only while this step is running */}
         <Box width={6}>
           {isRunning ? (
-            <Text color="cyan" bold>
+            <Text color={BRAND_COLOR} bold>
               [{stepNumber}/{totalSteps}]
             </Text>
           ) : (

@@ -4,8 +4,8 @@
 // getApiKey() reads process.env, so dotenv vars are picked up automatically.
 import 'dotenv/config';
 
-import { createRequire } from 'node:module';
 import { Command } from 'commander';
+import packageJson from '../../package.json';
 import { runCommand } from './commands/run.js';
 import { historyCommand } from './commands/history.js';
 import { setupCommand } from './commands/setup.js';
@@ -18,8 +18,7 @@ import { welcomeCommand } from './commands/welcome.js';
 import { listConfiguredProviders } from '../providers/config.js';
 import { costsCommand } from './commands/costs.js';
 
-const require = createRequire(import.meta.url);
-const { version } = require('../package.json') as { version: string };
+const { version } = packageJson;
 
 const program = new Command();
 
@@ -63,6 +62,7 @@ program
   .option('--max-iterations <n>', 'max Dev→QA retry iterations on QA fail (default: 2)', (v) =>
     parseInt(v, 10),
   )
+  .option('--no-banner', 'suppress the startup banner (also: LUNATAR_NO_BANNER=1)')
   .action(
     async (
       intent?: string,
@@ -80,6 +80,7 @@ program
         budgetUsd?: number;
         dailyBudgetUsd?: number;
         maxIterations?: number;
+        noBanner?: boolean;
       },
     ) => {
       await runCommand({
@@ -97,6 +98,7 @@ program
         ...(opts?.budgetUsd !== undefined ? { budgetUsd: opts.budgetUsd } : {}),
         ...(opts?.dailyBudgetUsd !== undefined ? { dailyBudgetUsd: opts.dailyBudgetUsd } : {}),
         ...(opts?.maxIterations !== undefined ? { maxIterations: opts.maxIterations } : {}),
+        ...(opts?.noBanner ? { noBanner: true } : {}),
       });
     },
   );
