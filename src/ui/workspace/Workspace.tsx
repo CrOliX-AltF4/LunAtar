@@ -62,6 +62,8 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
     setGuildeSteps([]);
     setCurrentStep(undefined);
     setTotalSteps(undefined);
+    setActiveSkillIds([]);
+    setActivePluginIds([]);
     setView('pipeline');
     setCompanionState('forging');
     setPoSpeech(value);
@@ -91,7 +93,7 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
     const active = steps.filter((s) => s.status !== 'skipped');
     const done = active.filter((s) => s.status === 'completed' || s.status === 'failed');
     if (active.length > 0) {
-      setCurrentStep(done.length + 1);
+      setCurrentStep(Math.min(done.length + 1, active.length));
       setTotalSteps(active.length);
     }
   };
