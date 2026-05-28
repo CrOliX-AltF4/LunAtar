@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, useInput, useApp } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import { listRuns } from '../../storage/index.js';
 import { ResultsScreen } from './ResultsScreen.js';
 import { Separator } from '../components/Separator.js';
 import type { PipelineRun } from '../../types/index.js';
 import type { QAOutput } from '../../agents/types.js';
-import type { OnCompanionChange } from '../workspace/types.js';
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function parseVerdict(run: PipelineRun): string {
-  if (run.status === 'failed') return 'FAILED ';
+  if (run.status === 'failed') return 'FAIL   ';
   const step = run.steps.find((s) => s.role === 'qa' && s.status === 'completed');
   if (!step?.output) return 'NO QA  ';
   try {
@@ -24,7 +22,7 @@ function parseVerdict(run: PipelineRun): string {
 function verdictColor(v: string): string {
   if (v.startsWith('PASS')) return 'green';
   if (v.startsWith('PARTIAL')) return 'yellow';
-  if (v.startsWith('FAIL') || v.startsWith('FAILED')) return 'red';
+  if (v.startsWith('FAIL')) return 'red';
   return 'gray';
 }
 
@@ -49,19 +47,14 @@ function truncate(str: string, max: number): string {
 
 export interface HistoryScreenProps {
   onRerun?: (intent: string) => void;
-  onCompanionChange?: OnCompanionChange;
+  onBack?: () => void;
 }
 
-export function HistoryScreen({ onRerun, onCompanionChange }: HistoryScreenProps) {
-  const app = useApp();
+export function HistoryScreen({ onRerun, onBack }: HistoryScreenProps) {
   const [runs, setRuns] = useState<PipelineRun[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [mode, setMode] = useState<'list' | 'detail'>('list');
-
-  useEffect(() => {
-    onCompanionChange?.({ state: 'idle' });
-  }, []);
 
   useEffect(() => {
     listRuns()
@@ -88,7 +81,9 @@ export function HistoryScreen({ onRerun, onCompanionChange }: HistoryScreenProps
       const run = runs[selectedIndex];
       if (run && onRerun) onRerun(run.intent);
     }
-    if (input === 'q') app.exit();
+    if (input === 'q' || key.escape) {
+      if (onBack) onBack();
+    }
   });
 
   if (mode === 'detail') {
@@ -111,7 +106,7 @@ export function HistoryScreen({ onRerun, onCompanionChange }: HistoryScreenProps
       <Box flexDirection="column">
         <Separator />
         <Text>
-          No pipeline runs found. Run <Text color="cyan">lunatar run</Text> to get started.
+          No runs yet. Start your first forge with <Text color="yellow">lunatar run</Text>.
         </Text>
       </Box>
     );
@@ -121,25 +116,27 @@ export function HistoryScreen({ onRerun, onCompanionChange }: HistoryScreenProps
     <Box flexDirection="column">
       <Separator />
       <Box flexDirection="column" marginBottom={1}>
-        <Text bold>
+        <Text color="gray" dimColor>
           {'  '}
-          {'Date'.padEnd(17)}
+          {'Annale'.padEnd(17)}
           {'  '}
           {'Verdict'.padEnd(9)}
           {'  '}
-          {'Intent'.padEnd(45)}
+          {'Incantation'.padEnd(45)}
           {'  '}
-          {'Cost'.padEnd(9)}
+          {'Coût'.padEnd(9)}
           {'  '}
           {'Tokens'}
         </Text>
-        <Text color="gray">{'─'.repeat(100)}</Text>
+        <Text color="gray" dimColor>
+          {'─'.repeat(100)}
+        </Text>
         {runs.map((run, idx) => {
           const verdict = parseVerdict(run);
           const isSelected = idx === selectedIndex;
           return (
             <Box key={run.id}>
-              <Text color={isSelected ? 'cyan' : 'white'} bold={isSelected}>
+              <Text color={isSelected ? 'yellow' : 'white'} bold={isSelected}>
                 {isSelected ? '▶ ' : '  '}
                 {formatDate(run.createdAt).padEnd(17)}
                 {'  '}
@@ -147,7 +144,7 @@ export function HistoryScreen({ onRerun, onCompanionChange }: HistoryScreenProps
               <Text color={verdictColor(verdict)} bold={isSelected}>
                 {verdict.padEnd(9)}
               </Text>
-              <Text color={isSelected ? 'cyan' : 'white'}>
+              <Text color={isSelected ? 'yellow' : 'white'}>
                 {'  '}
                 {truncate(run.intent, 45).padEnd(45)}
                 {'  '}
@@ -158,11 +155,13 @@ export function HistoryScreen({ onRerun, onCompanionChange }: HistoryScreenProps
             </Box>
           );
         })}
-        <Text color="gray">{'─'.repeat(100)}</Text>
+        <Text color="gray" dimColor>
+          {'─'.repeat(100)}
+        </Text>
       </Box>
-      <Text color="gray">
-        {'↑↓'} navigate <Text color="white">Enter</Text> detail <Text color="white">r</Text> rerun{' '}
-        <Text color="white">q</Text> quit
+      <Text color="gray" dimColor>
+        {'↑↓'} navigate · <Text color="yellow">Enter</Text> inspect · <Text color="yellow">r</Text>{' '}
+        reforge · <Text color="yellow">q / Esc</Text> back
       </Text>
     </Box>
   );

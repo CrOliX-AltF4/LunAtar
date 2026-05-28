@@ -3,6 +3,7 @@ import type { AgentRole } from '../types/index.js';
 export interface Skill {
   id: string;
   name: string;
+  description: string;
   role: AgentRole | 'all';
   content: string;
   tokenEstimate: number;

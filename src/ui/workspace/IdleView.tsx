@@ -1,67 +1,57 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
-import chalk from 'chalk';
-import { COPPER } from '../theme.js';
+import { ORACLE_MESSAGES, GOLD } from '../theme.js';
 import { Separator } from '../components/Separator.js';
-import { usePanelCols } from './PanelContext.js';
+import { fullSpriteLines as f0 } from '../components/mascot-frame-0.js';
+import { fullSpriteLines as f1 } from '../components/mascot-frame-1.js';
+import { fullSpriteLines as f2 } from '../components/mascot-frame-2.js';
+import { fullSpriteLines as f3 } from '../components/mascot-frame-3.js';
+import { fullSpriteLines as f4 } from '../components/mascot-frame-4.js';
+import { fullSpriteLines as f5 } from '../components/mascot-frame-5.js';
+import { fullSpriteLines as f6 } from '../components/mascot-frame-6.js';
+import { fullSpriteLines as f7 } from '../components/mascot-frame-7.js';
 
-const TIPS: [string, string][] = [
-  ['lunatar ask "…"         ', '— ask a question directly, no pipeline'],
-  ['lunatar run --apply     ', '— dev agent writes files to your project'],
-  ['lunatar run --file f.ts ', '— inject a file as context'],
-  ['lunatar history         ', '— browse and re-run past pipelines'],
-  ['Be specific             ', '— "a REST API with JWT + Postgres" > "an API"'],
-];
-
-function ForgeHints({ cols }: { cols: number }) {
-  const innerWidth = Math.max(40, Math.min(cols - 6, 82));
-  const label = ' Forge tips ';
-  const topDashes = '─' + label + '─'.repeat(innerWidth - label.length - 1);
-  const topLine = chalk.hex(COPPER)('┌' + topDashes + '┐');
-  const emptyLine = chalk.hex(COPPER)('│') + ' '.repeat(innerWidth) + chalk.hex(COPPER)('│');
-  const bottomLine = chalk.hex(COPPER)('└' + '─'.repeat(innerWidth) + '┘');
-
-  return (
-    <Box flexDirection="column">
-      <Text>{topLine}</Text>
-      <Text>{emptyLine}</Text>
-      {TIPS.map(([cmd, desc], i) => {
-        const content = '  ' + chalk.white(cmd) + chalk.gray(desc);
-        const visibleLen = 2 + cmd.length + desc.length;
-        const pad = ' '.repeat(Math.max(0, innerWidth - visibleLen));
-        return (
-          <Text key={i}>
-            {chalk.hex(COPPER)('│')}
-            {content}
-            {pad}
-            {chalk.hex(COPPER)('│')}
-          </Text>
-        );
-      })}
-      <Text>{emptyLine}</Text>
-      <Text>{bottomLine}</Text>
-    </Box>
-  );
-}
+const FRAMES = [f0, f1, f2, f3, f4, f5, f6, f7] as const;
+const FRAME_MS = 160;
 
 export function IdleView() {
-  const cols = usePanelCols();
+  const [frameIdx, setFrameIdx] = useState(0);
+  const [oracle] = useState<string>(
+    () =>
+      ORACLE_MESSAGES[Math.floor(Math.random() * ORACLE_MESSAGES.length)] ??
+      '"A patient blacksmith forges twice."',
+  );
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setFrameIdx((i) => (i + 1) % FRAMES.length);
+    }, FRAME_MS);
+    return () => {
+      clearInterval(id);
+    };
+  }, []);
+
+  const lines = (FRAMES[frameIdx] ?? FRAMES[0])('idle');
 
   return (
     <Box flexDirection="column">
       <Separator />
 
-      <Box flexDirection="column" paddingX={2} paddingY={1} gap={0}>
-        <Box marginBottom={1} gap={1}>
-          <Text color="white" bold>
-            What will you forge?
-          </Text>
-          <Text color="gray" dimColor>
-            — describe your intent, the forge turns it into code
-          </Text>
+      <Box flexDirection="row" paddingX={2} paddingY={1} gap={3}>
+        {/* Living flame — 8-frame sinusoidal animation */}
+        <Box flexDirection="column" gap={0}>
+          {lines.map((line, i) => (
+            <Text key={i}>{line}</Text>
+          ))}
         </Box>
 
-        <ForgeHints cols={cols} />
+        {/* Oracle + hint */}
+        <Box flexDirection="column" gap={1} justifyContent="center">
+          <Text color={GOLD}>⚄ {oracle}</Text>
+          <Text color="gray" dimColor>
+            type <Text color="yellow">/</Text> for commands
+          </Text>
+        </Box>
       </Box>
     </Box>
   );

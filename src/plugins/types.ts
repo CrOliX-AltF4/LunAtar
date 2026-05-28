@@ -10,6 +10,7 @@ export interface PluginContext {
 export interface Plugin {
   id: string;
   name: string;
+  description: string;
   role: AgentRole | 'all';
   tool: ToolDefinition;
   handler: (input: unknown, context: PluginContext) => Promise<string>;

@@ -8,6 +8,7 @@ interface RunCommandInput {
 export const runCommandPlugin: Plugin = {
   id: 'run_command',
   name: 'Run Command',
+  description: 'Execute a shell command and return stdout',
   role: 'dev',
   tool: {
     name: 'run_command',

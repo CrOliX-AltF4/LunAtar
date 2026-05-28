@@ -7,6 +7,7 @@ interface WebSearchInput {
 export const webSearchPlugin: Plugin = {
   id: 'web_search',
   name: 'Web Search',
+  description: 'Search the web and return summarised results',
   role: 'all',
   tool: {
     name: 'web_search',

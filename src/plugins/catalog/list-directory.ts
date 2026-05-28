@@ -9,6 +9,7 @@ interface ListDirectoryInput {
 export const listDirectoryPlugin: Plugin = {
   id: 'list_directory',
   name: 'List Directory',
+  description: 'List files and directories at a given path',
   role: 'all',
   tool: {
     name: 'list_directory',

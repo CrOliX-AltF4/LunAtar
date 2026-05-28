@@ -15,15 +15,69 @@ function loadMd(filename: string): string {
 }
 
 const CATALOG: Omit<Skill, 'content' | 'tokenEstimate'>[] = [
-  { id: 'typescript-strict', name: 'TypeScript Strict', role: 'all', cacheable: true },
-  { id: 'react-css-modules', name: 'React + CSS Modules', role: 'dev', cacheable: true },
-  { id: 'conventional-commits', name: 'Conventional Commits', role: 'all', cacheable: true },
-  { id: 'project-context', name: 'Project Context', role: 'all', cacheable: false },
-  { id: 'laravel-conventions', name: 'Laravel Conventions', role: 'dev', cacheable: true },
-  { id: 'test-conventions', name: 'Testing Conventions', role: 'all', cacheable: true },
-  { id: 'api-design', name: 'REST API Design', role: 'all', cacheable: true },
-  { id: 'i18n', name: 'Internationalisation', role: 'all', cacheable: true },
-  { id: 'security', name: 'Security Best Practices', role: 'all', cacheable: true },
+  {
+    id: 'typescript-strict',
+    name: 'TypeScript Strict',
+    description: 'Enforce strict TS: noImplicitAny, exactOptionalPropertyTypes, no-any',
+    role: 'all',
+    cacheable: true,
+  },
+  {
+    id: 'react-css-modules',
+    name: 'React + CSS Modules',
+    description: 'Component structure with CSS Modules, no inline styles, BEM naming',
+    role: 'dev',
+    cacheable: true,
+  },
+  {
+    id: 'conventional-commits',
+    name: 'Conventional Commits',
+    description: 'feat/fix/chore commit messages, semantic versioning',
+    role: 'all',
+    cacheable: true,
+  },
+  {
+    id: 'project-context',
+    name: 'Project Context',
+    description: 'Inject package.json, git status and folder structure into every agent',
+    role: 'all',
+    cacheable: false,
+  },
+  {
+    id: 'laravel-conventions',
+    name: 'Laravel Conventions',
+    description: 'PSR-12, Eloquent patterns, Form Request validation, resource controllers',
+    role: 'dev',
+    cacheable: true,
+  },
+  {
+    id: 'test-conventions',
+    name: 'Testing Conventions',
+    description: 'Unit + integration coverage, AAA pattern, no over-mocking',
+    role: 'all',
+    cacheable: true,
+  },
+  {
+    id: 'api-design',
+    name: 'REST API Design',
+    description: 'RESTful naming, status codes, pagination, versioning, OpenAPI docs',
+    role: 'all',
+    cacheable: true,
+  },
+  {
+    id: 'i18n',
+    name: 'Internationalisation',
+    description: 'i18n keys, no hardcoded strings, locale-aware date/number formatting',
+    role: 'all',
+    cacheable: true,
+  },
+  {
+    id: 'security',
+    name: 'Security Best Practices',
+    description: 'OWASP top-10, input validation, no secrets in code, CSP headers',
+    role: 'all',
+    cacheable: true,
+  },
 ];
 
 export class SkillRegistry {

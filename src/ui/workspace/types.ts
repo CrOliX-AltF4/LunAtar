@@ -1,10 +1,17 @@
-import type { CompanionState } from '../components/Companion.js';
+import type { CompanionState } from '../theme.js';
 import type { PipelineStep } from '../../types/index.js';
 
 export const COMP_WIDTH = 30;
 export const DIVIDER_W = 1;
 
-export type WorkspaceView = 'welcome' | 'setup' | 'prompt' | 'config' | 'pipeline' | 'results';
+export type WorkspaceView =
+  | 'welcome'
+  | 'setup'
+  | 'prompt'
+  | 'config'
+  | 'pipeline'
+  | 'results'
+  | 'history';
 
 export interface CompanionUpdate {
   state: CompanionState;

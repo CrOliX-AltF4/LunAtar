@@ -10,6 +10,7 @@ interface FileWriteInput {
 export const fileWritePlugin: Plugin = {
   id: 'file_write',
   name: 'Write File',
+  description: 'Write a file to the output directory',
   role: 'dev',
   tool: {
     name: 'file_write',
