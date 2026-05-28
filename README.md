@@ -9,9 +9,22 @@
 
 **intent → code**
 
-_A multi-agent AI pipeline CLI — four specialized agents, one clean result._
+_A multi-agent AI pipeline CLI. Feed the forge a plain-text intent — refined, tested code comes out._
 
 </div>
+
+---
+
+```
+⚒ Lun'Atar  ·  Dungeon: my-project  ·  -- Cold forge            Blacksmith Lv.3  v1.0.0
+─────────────────────────────────◆───────────────────────────────────────────────────────
+    ▲  ▲▲                     ⚄ "A patient blacksmith forges twice."
+   ▲▲ ◉ ◉ ▲▲
+  ▲▲▲  ~~  ▲▲                  type / for commands
+    ▓▒░▒▓
+─────────────────────────────────◆───────────────────────────────────────────────────────
+  › a REST API to manage users…                     [/] commands    [ctrl+c] quit
+```
 
 ---
 
@@ -19,20 +32,20 @@ _A multi-agent AI pipeline CLI — four specialized agents, one clean result._
 
 ```bash
 npm install -g lunatar
-lunatar               # opens the interactive TUI, guides you through setup
+lunatar               # the forge opens — setup runs automatically on first launch
 ```
 
-No API key? Run the built-in demo:
+> [!TIP]
+> No API key yet? Type `/demo` in the forge bar — a full pipeline runs on mock data, no credentials needed.
 
-```bash
-lunatar               # type /demo in the forge bar
-```
+> [!TIP]
+> **Easiest entry point:** one [OpenRouter](https://openrouter.ai) key gives you access to 200+ models including free tiers. Lun'Atar will suggest it automatically if no provider is configured.
 
 ---
 
-## How it works
+## The forge
 
-One plain-text intent enters. Four agents process it in sequence — each focused on one thing, passing only what the next step needs. On failure, the work goes back into the fire.
+One plain-text intent enters. Four agents process it in sequence — each focused on a single role, passing only what the next step needs. On failure, the work goes back into the fire.
 
 ```
   "build a REST API to manage users"
@@ -58,10 +71,13 @@ One plain-text intent enters. Four agents process it in sequence — each focuse
   └────────┬─────────┘
            │  fail? → back to Developer (up to N times)
            ▼
-      artifact sealed
+      ✦ artifact sealed
 ```
 
 Why four agents instead of one? Context pollution. A single LLM handling PO + architecture + code + QA in one context degrades fast. Lun'Atar splits each responsibility, keeps outputs typed, and gives you full traceability per run.
+
+> [!NOTE]
+> "Atar" is the Zoroastrian deity of sacred fire — the forge that purifies and transforms. Part of the [Lun' ecosystem](https://github.com/CrOliX-AltF4).
 
 ---
 
@@ -88,39 +104,43 @@ Why four agents instead of one? Context pollution. A single LLM handling PO + ar
 
 **Skills & Plugins**
 
-_Skills_ inject expertise into agent prompts — TypeScript conventions, React patterns, Laravel, security rules, REST design, and more.
+_Skills_ are expertise injected into agent prompts — TypeScript conventions, React patterns, Laravel, security rules, REST design, and more. Think of them as the blacksmith's training.
 
-_Plugins_ give agents tool-use capabilities — write files, read context, web search, run commands, execute code, open GitHub issues.
+_Plugins_ are tools the agents can wield — write files, read context, web search, run commands, execute code, open GitHub issues. Bridges to the outside world.
 
-Both are per-project via `lunatar.config.json` and selectable per-run from the TUI (`/arsenal`).
+Both are declared per-project via `lunatar.config.json` and selectable per-run from the TUI (`/arsenal`).
+
+> [!NOTE]
+> Skills and plugins are community-extensible via npm packages (`lunatar-skill-*`, `lunatar-plugin-*`). Install one and Lun'Atar discovers it automatically.
 
 **TUI**
 
-- Animated living flame mascot on the idle screen
+- Animated living flame mascot (Calcifer-inspired) on the idle screen
 - Slash command navigation — `/history`, `/arsenal`, `/setup`, `/demo`
 - Live pipeline view with forge fire animation per active step
 - Tabbed results: Verdict · Artefacts · Stratégie · Diff
-- Apply generated files directly to your project (`[a]` key)
-- Run history with re-run support
-- RPG lexicon throughout — Incantation, Dungeon, Forge, Blacksmith level
+- Apply generated files directly to your dungeon (`[a]` key)
+- Run history (the Annales) with re-run support
+- RPG lexicon — Incantation, Dungeon, Forge, Blacksmith level, Artifact
 
 ---
 
 ## Setup
 
-On first launch, Lun'Atar detects no provider and opens setup automatically.
+The forge is cold until you light it. On first launch, Lun'Atar opens setup automatically.
 
 ```bash
 lunatar setup                              # interactive provider configuration
-lunatar config set groq.apiKey <key>       # or set directly
-lunatar config set openrouter.apiKey <key> # one key for 200+ models
+lunatar config set groq.apiKey <key>       # or configure directly
+lunatar config set openrouter.apiKey <key> # one key, 200+ models
 ```
 
-Environment variables always take precedence:
-
-```bash
-GROQ_API_KEY=<key> lunatar run "..."
-```
+> [!TIP]
+> Keys are stored in `~/.lunatar/config.json`. Environment variables always take precedence — useful for CI or per-project overrides:
+>
+> ```bash
+> GROQ_API_KEY=<key> lunatar run "..."
+> ```
 
 ---
 
@@ -128,8 +148,8 @@ GROQ_API_KEY=<key> lunatar run "..."
 
 ```bash
 lunatar                                         # interactive TUI
-lunatar run "build a REST API"                  # headless run
-lunatar run "..." --dry                         # preview cost, no LLM calls
+lunatar run "build a REST API"                  # fire the forge headlessly
+lunatar run "..." --dry                         # preview cost — no LLM calls
 lunatar run "..." --apply                       # write output to current directory
 lunatar run "..." --skip qa                     # bypass a role
 lunatar run "..." --model gemini-2.5-pro        # override model
@@ -137,30 +157,30 @@ lunatar run "..." --provider openrouter         # override provider
 lunatar run "..." --budget-usd 0.10             # abort above $0.10
 lunatar run "..." --max-iterations 3            # allow 3 Dev→QA retries
 lunatar run "..." --json                        # machine-readable output
-lunatar ask "what does this file do" --file x   # direct LLM question
-lunatar history                                 # browse past runs
-lunatar costs                                   # spending summary
-lunatar watch ./src --intent intent.txt         # re-run on file change
-lunatar catalog                                 # list skills and plugins
+lunatar ask "what does this file do" --file x   # direct question to the LLM
+lunatar history                                 # browse the Annales
+lunatar costs                                   # combustible spent
+lunatar watch ./src --intent intent.txt         # re-forge on file change
+lunatar catalog                                 # list available skills and plugins
 lunatar init                                    # scaffold a new project
 ```
 
 ## TUI controls
 
-| Key        | Action                                                       |
-| ---------- | ------------------------------------------------------------ |
-| `/`        | Slash commands — type to filter                              |
-| `/demo`    | Run demo pipeline (no API key needed)                        |
-| `/history` | Browse past runs                                             |
-| `/arsenal` | Select skills & plugins for next run                         |
-| `/setup`   | Configure API keys                                           |
-| `↑ ↓`      | Navigate                                                     |
-| `m`        | Swap model on focused step                                   |
-| `↵`        | Fire the forge                                               |
-| `1 2 3 4`  | Switch results tabs (Verdict / Artefacts / Stratégie / Diff) |
-| `a`        | Apply generated files to current directory                   |
-| `s`        | Seal artifacts (save to `./output/<run-id>/`)                |
-| `r / q`    | New forge                                                    |
+| Key        | Action                                                |
+| ---------- | ----------------------------------------------------- |
+| `/`        | Slash commands — type to filter autocomplete          |
+| `/demo`    | Run demo pipeline (no API key needed)                 |
+| `/history` | The Annales — browse past runs                        |
+| `/arsenal` | Select skills & plugins for next run                  |
+| `/setup`   | Arm the forge — configure API keys                    |
+| `↑ ↓`      | Navigate                                              |
+| `m`        | Swap rune (change model on focused step)              |
+| `↵`        | Fire the forge                                        |
+| `1 2 3 4`  | Results tabs — Verdict / Artefacts / Stratégie / Diff |
+| `a`        | Deploy to dungeon (apply files to current directory)  |
+| `s`        | Seal artifacts (save to `./output/<run-id>/`)         |
+| `r / q`    | New forge                                             |
 
 ---
 
@@ -183,20 +203,17 @@ lunatar init                                    # scaffold a new project
 
 **Plugins:** `file_write` · `read_file` · `web_search` · `run_command` · `list_directory` · `create_directory` · `execute_code` · `github_create_issue`
 
-External skills and plugins are discoverable via npm (`lunatar-skill-*`, `lunatar-plugin-*`).
-
 ---
 
 > [!WARNING]
-> Lun'Atar generates code. It does not execute it. The QA agent audits for issues but is not a substitute for human review.
+> Lun'Atar generates code. It does not execute it. The QA agent audits for issues but is not a substitute for human review before deploying to production.
 
 ---
-
-> _"Atar" is the Zoroastrian deity of sacred fire — the forge that purifies and transforms._
-> _Part of the [Lun' ecosystem](https://github.com/CrOliX-AltF4)._
 
 <div align="center">
 
 Built by **[CrOliX-AltF4](https://github.com/CrOliX-AltF4)** · MIT License · © 2026
+
+_Where raw intent finds its final form._
 
 </div>
