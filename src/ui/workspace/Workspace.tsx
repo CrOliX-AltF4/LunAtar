@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, useStdout, useInput } from 'ink';
+import { Box, useStdout } from 'ink';
 import { TitleBar } from './TitleBar.js';
 import { PanelProvider } from './PanelContext.js';
 import { IdleView } from './IdleView.js';
@@ -12,7 +12,7 @@ import { WelcomeScreen } from '../screens/WelcomeScreen.js';
 import { HistoryScreen } from '../screens/HistoryScreen.js';
 import { listConfiguredProviders } from '../../providers/config.js';
 import type { WorkspaceView } from './types.js';
-import type { CompanionState } from '../components/Companion.js';
+import type { CompanionState } from '../theme.js';
 import type { AgentRole, PipelineRun, PipelineStep } from '../../types/index.js';
 
 interface WorkspaceProps {
@@ -47,6 +47,9 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
   const [activePluginIds, setActivePluginIds] = useState<string[]>([]);
   const [currentStep, setCurrentStep] = useState<number | undefined>(undefined);
   const [totalSteps, setTotalSteps] = useState<number | undefined>(undefined);
+  const [runTokens, setRunTokens] = useState<number>(0);
+  const [runCostUsd, setRunCostUsd] = useState<number>(0);
+  const [isDemo, setIsDemo] = useState(false);
 
   // ── Companion state ─────────────────────────────────────────────────────────
   const [companionState, setCompanionState] = useState<CompanionState>('idle');
@@ -56,8 +59,6 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
     setCompletedRun(null);
     setCurrentStep(undefined);
     setTotalSteps(undefined);
-    setActiveSkillIds([]);
-    setActivePluginIds([]);
     setView('pipeline');
     setCompanionState('forging');
   };
@@ -65,9 +66,8 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
   const handleConfigConfirm = (skillIds: string[], pluginIds: string[]) => {
     setActiveSkillIds(skillIds);
     setActivePluginIds(pluginIds);
-    setCurrentStep(1);
-    setView('pipeline');
-    setCompanionState('forging');
+    setView('prompt');
+    setCompanionState('idle');
   };
 
   const handlePipelineComplete = (run: PipelineRun) => {
@@ -83,28 +83,56 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
       setCurrentStep(Math.min(done.length + 1, active.length));
       setTotalSteps(active.length);
     }
+    const tokens = steps.reduce((sum, s) => sum + (s.tokensUsed ?? 0), 0);
+    const cost = steps.reduce((sum, s) => sum + (s.costUsd ?? 0), 0);
+    if (tokens > 0) setRunTokens(tokens);
+    if (cost > 0) setRunCostUsd(cost);
   };
 
   const handleNewPipeline = () => {
     setCompletedRun(null);
     setIntent('');
+    setIsDemo(false);
     setActiveSkillIds([]);
     setActivePluginIds([]);
     setCurrentStep(undefined);
     setTotalSteps(undefined);
+    setRunTokens(0);
+    setRunCostUsd(0);
     setView('prompt');
     setCompanionState('idle');
   };
 
-  // ── Keybindings ─────────────────────────────────────────────────────────────
-  useInput((input) => {
-    if (input === 'h' && view === 'prompt') {
-      setView('history');
+  const hasActiveConfig = activeSkillIds.length > 0 || activePluginIds.length > 0;
+
+  // ── Slash command router ─────────────────────────────────────────────────────
+  const handleCommand = (cmd: string, _args: string) => {
+    switch (cmd) {
+      case 'history':
+      case 'h':
+        setView('history');
+        break;
+      case 'arsenal':
+      case 'config':
+      case 'c':
+        setView('config');
+        break;
+      case 'setup':
+        setView('setup');
+        break;
+      case 'costs':
+        break;
+      case 'demo':
+        setIntent('Demo: JWT authentication REST API');
+        setIsDemo(true);
+        setCompletedRun(null);
+        setCurrentStep(undefined);
+        setTotalSteps(undefined);
+        setView('pipeline');
+        setCompanionState('forging');
+        break;
     }
-    if (input === ',' && view === 'prompt') {
-      setView('config');
-    }
-  });
+  };
 
   // ── View ────────────────────────────────────────────────────────────────────
   function renderView() {
@@ -125,6 +153,10 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
               setView('prompt');
               setCompanionState('idle');
             }}
+            onBack={() => {
+              setView('prompt');
+              setCompanionState('idle');
+            }}
           />
         );
       case 'prompt':
@@ -141,7 +173,11 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
         );
       case 'results':
         return completedRun ? (
-          <ResultsScreen run={completedRun} onNewPipeline={handleNewPipeline} />
+          <ResultsScreen
+            run={completedRun}
+            onNewPipeline={handleNewPipeline}
+            {...(isDemo ? { readOnly: true } : {})}
+          />
         ) : null;
       case 'history':
         return (
@@ -149,6 +185,9 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
             onRerun={(intentStr) => {
               setIntent(intentStr);
               setView('pipeline');
+            }}
+            onBack={() => {
+              setView('prompt');
             }}
           />
         );
@@ -158,6 +197,7 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
             intent={intent}
             onComplete={handlePipelineComplete}
             onStepsChange={handleStepsChange}
+            {...(isDemo ? { isDemo: true } : {})}
             {...(skipRoles ? { skipRoles } : {})}
             {...(activeSkillIds.length > 0 ? { activeSkillIds } : {})}
             {...(activePluginIds.length > 0 ? { activePluginIds } : {})}
@@ -172,12 +212,18 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
         companionState={companionState}
         {...(currentStep !== undefined ? { currentStep } : {})}
         {...(totalSteps !== undefined ? { totalSteps } : {})}
+        {...(runTokens > 0 ? { runTokens, runCostUsd } : {})}
       />
       <PanelProvider value={{ cols }}>
         <Box flexDirection="column">{renderView()}</Box>
         <IncantationBar
-          locked={view !== 'prompt' && view !== 'results'}
+          key={view === 'prompt' ? 'prompt' : 'other'}
+          locked={view !== 'prompt'}
           onSubmit={handleIntentFromBar}
+          onCommand={handleCommand}
+          {...(hasActiveConfig
+            ? { activeCount: activeSkillIds.length + activePluginIds.length }
+            : {})}
         />
       </PanelProvider>
     </Box>

@@ -429,6 +429,8 @@ const PROVIDER_NAMES: ReadonlySet<string> = new Set<ProviderName>([
   'claude',
   'openai',
   'nim',
+  'openrouter',
+  'ollama',
 ]);
 
 function isProviderName(value: string): value is ProviderName {

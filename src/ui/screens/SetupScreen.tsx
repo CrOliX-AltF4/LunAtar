@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
 import TextInput from 'ink-text-input';
 import { Separator } from '../components/Separator.js';
-import type { OnCompanionChange } from '../workspace/types.js';
 import type { ProviderName } from '../../types/index.js';
 import { setApiKey, getApiKey } from '../../providers/config.js';
 
@@ -81,10 +80,9 @@ const PROVIDERS: ProviderInfo[] = [
 interface SetupScreenProps {
   onComplete: () => void;
   onBack?: () => void;
-  onCompanionChange?: OnCompanionChange;
 }
 
-export function SetupScreen({ onComplete, onBack, onCompanionChange }: SetupScreenProps) {
+export function SetupScreen({ onComplete, onBack }: SetupScreenProps) {
   const app = useApp();
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [entering, setEntering] = useState(false);
@@ -95,10 +93,6 @@ export function SetupScreen({ onComplete, onBack, onCompanionChange }: SetupScre
 
   const focusedProvider = PROVIDERS[focusedIndex];
   const hasOne = configured.size > 0;
-
-  useEffect(() => {
-    onCompanionChange?.({ state: 'idle', poSpeech: "Arme la forge — tu as besoin d'une clé." });
-  }, []);
 
   useInput((input, key) => {
     if (entering) {
@@ -112,7 +106,10 @@ export function SetupScreen({ onComplete, onBack, onCompanionChange }: SetupScre
       if (onBack) onBack();
       return;
     }
-    if (input === 'q') app.exit();
+    if (input === 'q') {
+      if (onBack) onBack();
+      else app.exit();
+    }
     if (key.upArrow) setFocusedIndex((i) => Math.max(0, i - 1));
     if (key.downArrow) setFocusedIndex((i) => Math.min(PROVIDERS.length - 1, i + 1));
     if (key.return) setEntering(true);
@@ -138,10 +135,10 @@ export function SetupScreen({ onComplete, onBack, onCompanionChange }: SetupScre
 
       <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>
         <Text color="white" bold>
-          Choose a provider
+          Arm the forge — choose a provider
         </Text>
-        <Text color="gray">
-          You need at least one API key to run pipelines. Groq and Gemini are free.
+        <Text color="gray" dimColor>
+          At least one key required to fire the forge. Groq and Gemini offer a free tier.
         </Text>
 
         {/* Provider list */}
@@ -189,7 +186,7 @@ export function SetupScreen({ onComplete, onBack, onCompanionChange }: SetupScre
             gap={0}
             marginTop={1}
             borderStyle="round"
-            borderColor="cyan"
+            borderColor="yellow"
             paddingX={2}
             paddingY={1}
           >
@@ -205,9 +202,7 @@ export function SetupScreen({ onComplete, onBack, onCompanionChange }: SetupScre
                 onChange={setInputValue}
                 onSubmit={handleSubmit}
                 placeholder={
-                  focusedProvider.name === 'ollama'
-                    ? 'press Enter to confirm'
-                    : 'paste your API key…'
+                  focusedProvider.name === 'ollama' ? 'Enter to confirm' : 'paste your API key…'
                 }
                 {...(focusedProvider.name !== 'ollama' ? { mask: '*' } : {})}
               />
@@ -242,7 +237,7 @@ export function SetupScreen({ onComplete, onBack, onCompanionChange }: SetupScre
         </Text>
         {hasOne && (
           <Text color="gray">
-            <Text color="green">[c]</Text> continue
+            <Text color="green">[c]</Text> continuer
           </Text>
         )}
         {onBack && (

@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
-import type { CompanionState } from '../components/Companion.js';
 import * as orchestrator from '../../orchestrator/index.js';
+import { runDemoPipeline } from '../../pipeline/demo.js';
 import { Separator } from '../components/Separator.js';
-import type { OnCompanionChange, OnStepsChange } from '../workspace/types.js';
+import type { OnStepsChange } from '../workspace/types.js';
 import { StepRow } from '../components/StepRow.js';
 import { Footer } from '../components/Footer.js';
 import { MODEL_CATALOG } from '../../models/catalog.js';
@@ -17,8 +17,8 @@ import {
   STATUS_ICONS,
   STATUS_COLORS,
   SPINNER_FRAMES,
-  SPINNER_INTERVAL_MS,
   COPPER,
+  GOLD,
 } from '../theme.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -61,6 +61,17 @@ function StepSummaryRow({ step }: { step: PipelineStep }) {
   );
 }
 
+// ─── Forge fire frames ────────────────────────────────────────────────────────
+
+const FIRE_FRAMES: ReadonlyArray<{ chars: string; color: string }> = [
+  { chars: '▲ ▲▲ ▲▲▲ ▲ ▲▲', color: 'yellow' },
+  { chars: '▲▲ ▲▲▲ ▲ ▲▲▲ ', color: COPPER },
+  { chars: ' ▲▲▲ ▲ ▲▲▲ ▲▲', color: GOLD },
+  { chars: '▲▲▲ ▲▲ ▲▲▲ ▲ ', color: 'yellow' },
+  { chars: ' ▲ ▲▲▲▲ ▲ ▲▲▲', color: COPPER },
+  { chars: '▲▲▲ ▲ ▲▲▲▲ ▲ ', color: GOLD },
+];
+
 // ─── ActiveStepPanel ──────────────────────────────────────────────────────────
 
 function ActiveStepPanel({ step }: { step: PipelineStep }) {
@@ -69,21 +80,27 @@ function ActiveStepPanel({ step }: { step: PipelineStep }) {
 
   useEffect(() => {
     const id = setInterval(() => {
-      setFrame((f) => (f + 1) % SPINNER_FRAMES.length);
-    }, SPINNER_INTERVAL_MS);
+      setFrame((f) => (f + 1) % FIRE_FRAMES.length);
+    }, 160);
     return () => {
       clearInterval(id);
     };
   }, []);
 
+  const fire = FIRE_FRAMES[frame % FIRE_FRAMES.length];
+  const spinnerFrame = SPINNER_FRAMES[frame % SPINNER_FRAMES.length] ?? '⠋';
+
   return (
     <Box borderStyle="single" borderColor="yellow" flexDirection="column" paddingX={1} marginY={0}>
-      <Text color={COPPER} bold>
-        [ {classLabel} ]
-      </Text>
+      <Box justifyContent="space-between">
+        <Text color={COPPER} bold>
+          [ {classLabel} ]
+        </Text>
+        {fire !== undefined && <Text color={fire.color}>{fire.chars}</Text>}
+      </Box>
       <Box gap={1}>
-        <Text color="cyan">{SPINNER_FRAMES[frame] ?? '⠋'}</Text>
-        <Text color="cyan">{ROLE_TASK_LABELS[step.role]}…</Text>
+        <Text color="yellow">{spinnerFrame}</Text>
+        <Text color="yellow">{ROLE_TASK_LABELS[step.role]}…</Text>
       </Box>
     </Box>
   );
@@ -117,13 +134,13 @@ function ModelPicker({ role, currentModelId, onSelect, onCancel }: ModelPickerPr
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor="cyan"
+      borderColor="yellow"
       paddingX={2}
       paddingY={1}
       marginTop={1}
       gap={1}
     >
-      <Text color="cyan" bold>
+      <Text color="yellow" bold>
         Change model — <Text color="white">{role.toUpperCase()}</Text>
       </Text>
 
@@ -131,7 +148,7 @@ function ModelPicker({ role, currentModelId, onSelect, onCancel }: ModelPickerPr
         const isSelected = i === index;
         return (
           <Box key={model.id} gap={2}>
-            <Text color="cyan">{isSelected ? '›' : ' '}</Text>
+            <Text color="yellow">{isSelected ? '›' : ' '}</Text>
             <Text color={isSelected ? 'white' : 'gray'} bold={isSelected}>
               {model.displayName}
             </Text>
@@ -145,13 +162,13 @@ function ModelPicker({ role, currentModelId, onSelect, onCancel }: ModelPickerPr
 
       <Box gap={3} marginTop={1}>
         <Text color="gray">
-          <Text color="cyan">[↑↓]</Text> navigate
+          <Text color="yellow">[↑↓]</Text> navigate
         </Text>
         <Text color="gray">
-          <Text color="cyan">[↵]</Text> confirm
+          <Text color="yellow">[↵]</Text> confirm
         </Text>
         <Text color="gray">
-          <Text color="cyan">[Esc]</Text> cancel
+          <Text color="yellow">[Esc]</Text> cancel
         </Text>
       </Box>
     </Box>
@@ -166,16 +183,15 @@ interface PipelineScreenProps {
   onComplete?: (run: PipelineRun) => void;
   activeSkillIds?: string[];
   activePluginIds?: string[];
-  onCompanionChange?: OnCompanionChange;
-  onStepChange?: (current: number, total: number) => void;
   onStepsChange?: OnStepsChange;
+  isDemo?: boolean;
 }
 
 const KEYBINDINGS = [
   { key: '↑↓', label: 'navigate' },
-  { key: 'm', label: 'change model' },
-  { key: '↵', label: 'run pipeline' },
-  { key: 'q', label: 'quit' },
+  { key: 'm', label: 'swap rune' },
+  { key: '↵', label: 'fire the forge' },
+  { key: 'q', label: 'abandon' },
 ];
 
 export function PipelineScreen({
@@ -184,9 +200,8 @@ export function PipelineScreen({
   onComplete,
   activeSkillIds,
   activePluginIds,
-  onCompanionChange,
-  onStepChange,
   onStepsChange,
+  isDemo = false,
 }: PipelineScreenProps) {
   const app = useApp();
   const [steps, setSteps] = useState<PipelineStep[]>(() => buildDefaultSteps(skipRoles));
@@ -196,42 +211,6 @@ export function PipelineScreen({
   const [currentIteration, setCurrentIteration] = useState(1);
   const [maxIterations, setMaxIterations] = useState(2);
   const [initiative, setInitiative] = useState<number | undefined>(undefined);
-
-  const companionState = useMemo((): CompanionState => {
-    if (steps.some((s) => s.status === 'failed')) return 'error';
-    if (steps.every((s) => s.status === 'completed' || s.status === 'skipped')) return 'done';
-    if (isRunning) return 'forging';
-    return 'idle';
-  }, [steps, isRunning]);
-
-  const companionSpeech = useMemo((): string | undefined => {
-    const AGENT_SPEECH: Record<AgentRole, string> = {
-      po: 'Clarifying your request...',
-      planner: 'Architecting the solution...',
-      dev: 'Forging the code...',
-      qa: 'Validating the work...',
-    };
-    const running = steps.find((s) => s.status === 'running');
-    if (running) return AGENT_SPEECH[running.role];
-    if (steps.every((s) => s.status === 'pending')) return 'Ready. Press Enter to fire the forge.';
-    if (steps.some((s) => s.status === 'failed'))
-      return 'A step has failed — review the output below.';
-    return undefined;
-  }, [steps]);
-
-  useEffect(() => {
-    onCompanionChange?.({
-      state: companionState,
-      poSpeech: intent,
-      ...(companionSpeech !== undefined ? { qaSpeech: companionSpeech } : {}),
-    });
-  }, [companionState, companionSpeech, intent]);
-
-  useEffect(() => {
-    if (isRunning) {
-      onStepChange?.(currentIteration, maxIterations);
-    }
-  }, [currentIteration, maxIterations, isRunning]);
 
   useEffect(() => {
     onStepsChange?.(steps);
@@ -257,22 +236,21 @@ export function PipelineScreen({
                 : {}),
             }
           : undefined;
-      void orchestrator
-        .run(
-          intent,
-          steps,
-          (updatedStep) => {
-            setSteps((prev) => prev.map((s) => (s.id === updatedStep.id ? updatedStep : s)));
-          },
-          undefined,
-          override,
-          (event: PipelineEvent) => {
-            if (event.type === 'iteration_started') {
-              setCurrentIteration(event.iteration);
-              setMaxIterations(event.maxIterations);
-            }
-          },
-        )
+      const onUpdate = (updatedStep: PipelineStep) => {
+        setSteps((prev) => prev.map((s) => (s.id === updatedStep.id ? updatedStep : s)));
+      };
+      const onEvent = (event: PipelineEvent) => {
+        if (event.type === 'iteration_started') {
+          setCurrentIteration(event.iteration);
+          setMaxIterations(event.maxIterations);
+        }
+      };
+
+      const runner = isDemo
+        ? runDemoPipeline(intent, steps, onUpdate, onEvent)
+        : orchestrator.run(intent, steps, onUpdate, undefined, override, onEvent);
+
+      void runner
         .then((run) => {
           onComplete?.(run);
         })
@@ -302,7 +280,9 @@ export function PipelineScreen({
       <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>
         {/* Intent */}
         <Box gap={1}>
-          <Text color="gray">Pipeline:</Text>
+          <Text color="gray" dimColor>
+            Incantation:
+          </Text>
           <Text color="white" bold>
             "{intent}"
           </Text>
@@ -313,7 +293,7 @@ export function PipelineScreen({
           <Box flexDirection="column" marginTop={1} gap={1}>
             {/* Header */}
             <Box gap={2}>
-              <Text color="cyan" bold>
+              <Text color="yellow" bold>
                 ◆ "{truncateIntent(intent)}"
               </Text>
               {initiative !== undefined && (

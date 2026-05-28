@@ -9,6 +9,7 @@ interface ReadFileInput {
 export const readFilePlugin: Plugin = {
   id: 'read_file',
   name: 'Read File',
+  description: 'Read a file from disk and return its content',
   role: 'all',
   tool: {
     name: 'read_file',

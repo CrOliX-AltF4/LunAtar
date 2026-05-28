@@ -1,88 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
-import { listRuns } from '../../storage/index.js';
 import { ORACLE_MESSAGES, GOLD } from '../theme.js';
 import { Separator } from '../components/Separator.js';
-import type { PipelineRun } from '../../types/index.js';
+import { fullSpriteLines as f0 } from '../components/mascot-frame-0.js';
+import { fullSpriteLines as f1 } from '../components/mascot-frame-1.js';
+import { fullSpriteLines as f2 } from '../components/mascot-frame-2.js';
+import { fullSpriteLines as f3 } from '../components/mascot-frame-3.js';
+import { fullSpriteLines as f4 } from '../components/mascot-frame-4.js';
+import { fullSpriteLines as f5 } from '../components/mascot-frame-5.js';
+import { fullSpriteLines as f6 } from '../components/mascot-frame-6.js';
+import { fullSpriteLines as f7 } from '../components/mascot-frame-7.js';
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return (
-    d.toLocaleDateString('fr-CA') +
-    ' ' +
-    d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-  );
-}
-
-function truncate(str: string, max: number): string {
-  return str.length > max ? str.slice(0, max - 1) + '…' : str;
-}
-
-function verdictOf(run: PipelineRun): { label: string; color: string } {
-  if (run.status === 'failed') return { label: '✗ FAIL  ', color: 'red' };
-  const qa = run.steps.find((s) => s.role === 'qa' && s.status === 'completed');
-  if (qa?.output) {
-    try {
-      const out = JSON.parse(qa.output) as { verdict: string };
-      if (out.verdict === 'pass') return { label: '✓ PASS  ', color: 'green' };
-      if (out.verdict === 'partial') return { label: '◈ PART. ', color: 'yellow' };
-      return { label: '✗ FAIL  ', color: 'red' };
-    } catch {
-      // fall through
-    }
-  }
-  return { label: '✓ DONE  ', color: 'green' };
-}
+const FRAMES = [f0, f1, f2, f3, f4, f5, f6, f7] as const;
+const FRAME_MS = 160;
 
 export function IdleView() {
-  const [runs, setRuns] = useState<PipelineRun[]>([]);
+  const [frameIdx, setFrameIdx] = useState(0);
   const [oracle] = useState<string>(
-    () => ORACLE_MESSAGES[Math.floor(Math.random() * ORACLE_MESSAGES.length)] ?? ORACLE_MESSAGES[0],
+    () =>
+      ORACLE_MESSAGES[Math.floor(Math.random() * ORACLE_MESSAGES.length)] ??
+      '"A patient blacksmith forges twice."',
   );
 
   useEffect(() => {
-    void listRuns().then((all) => {
-      setRuns([...all].reverse().slice(0, 5));
-    });
+    const id = setInterval(() => {
+      setFrameIdx((i) => (i + 1) % FRAMES.length);
+    }, FRAME_MS);
+    return () => {
+      clearInterval(id);
+    };
   }, []);
+
+  const lines = (FRAMES[frameIdx] ?? FRAMES[0])('idle');
 
   return (
     <Box flexDirection="column">
       <Separator />
 
-      <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>
-        {/* Oracle */}
-        <Text color={GOLD}>⚄ {oracle}</Text>
+      <Box flexDirection="row" paddingX={2} paddingY={1} gap={3}>
+        {/* Living flame — 8-frame sinusoidal animation */}
+        <Box flexDirection="column" gap={0}>
+          {lines.map((line, i) => (
+            <Text key={i}>{line}</Text>
+          ))}
+        </Box>
 
-        {/* Run history */}
-        {runs.length > 0 ? (
-          <Box flexDirection="column" gap={0} marginTop={1}>
-            {runs.map((run) => {
-              const { label, color } = verdictOf(run);
-              return (
-                <Box key={run.id} gap={2}>
-                  <Text color={color}>{label}</Text>
-                  <Text color="white">{truncate(run.intent, 42)}</Text>
-                  <Text color="gray" dimColor>
-                    · ${run.totalCostUsd.toFixed(3)} · {formatDate(run.createdAt)}
-                  </Text>
-                </Box>
-              );
-            })}
-          </Box>
-        ) : (
+        {/* Oracle + hint */}
+        <Box flexDirection="column" gap={1} justifyContent="center">
+          <Text color={GOLD}>⚄ {oracle}</Text>
           <Text color="gray" dimColor>
-            Aucune forge en mémoire. Lancez votre première incantation ci-dessous.
-          </Text>
-        )}
-
-        {/* Keybinding hints */}
-        <Box marginTop={1} gap={3}>
-          <Text color="gray" dimColor>
-            <Text color="gray">[h]</Text> historique
-          </Text>
-          <Text color="gray" dimColor>
-            <Text color="gray">[,]</Text> config
+            type <Text color="yellow">/</Text> for commands
           </Text>
         </Box>
       </Box>

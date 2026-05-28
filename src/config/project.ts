@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import Ajv from 'ajv';
 import { projectConfigSchema } from './schema.js';
@@ -54,6 +54,13 @@ export async function loadProjectConfig(cwd: string): Promise<ProjectConfig> {
       fallback: parsed.providers?.fallback ?? [],
     },
   };
+}
+
+export async function saveProjectConfig(cwd: string, config: ProjectConfig): Promise<string> {
+  const existing = await findConfig(cwd);
+  const dest = existing ?? join(cwd, 'lunatar.config.json');
+  await writeFile(dest, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+  return dest;
 }
 
 // Walk up from cwd, stop at the first directory containing package.json.

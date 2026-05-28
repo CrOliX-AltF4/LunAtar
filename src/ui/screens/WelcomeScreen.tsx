@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import chalk from 'chalk';
@@ -6,13 +6,10 @@ import { Separator } from '../components/Separator.js';
 import { SetupScreen } from './SetupScreen.js';
 import { GOLD } from '../theme.js';
 import { setApiKey } from '../../providers/config.js';
-import type { OnCompanionChange } from '../workspace/types.js';
-
 type WelcomeMode = 'choose' | 'simple-key' | 'expert';
 
 interface WelcomeScreenProps {
   onComplete: () => void;
-  onCompanionChange?: OnCompanionChange;
 }
 
 const MODES = [
@@ -28,23 +25,10 @@ const MODES = [
   },
 ];
 
-export function WelcomeScreen({ onComplete, onCompanionChange }: WelcomeScreenProps) {
+export function WelcomeScreen({ onComplete }: WelcomeScreenProps) {
   const [mode, setMode] = useState<WelcomeMode>('choose');
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [inputValue, setInputValue] = useState('');
-
-  useEffect(() => {
-    onCompanionChange?.({ state: 'idle', poSpeech: "La forge est froide. Comment l'allumer ?" });
-  }, []);
-
-  useEffect(() => {
-    if (mode === 'simple-key') {
-      onCompanionChange?.({
-        state: 'idle',
-        poSpeech: 'Paste your OpenRouter key to light the forge.',
-      });
-    }
-  }, [mode]);
 
   useInput((input, key) => {
     if (mode === 'simple-key' && key.escape) {
@@ -76,7 +60,6 @@ export function WelcomeScreen({ onComplete, onCompanionChange }: WelcomeScreenPr
         onBack={() => {
           setMode('choose');
         }}
-        {...(onCompanionChange !== undefined ? { onCompanionChange } : {})}
       />
     );
   }
@@ -101,7 +84,7 @@ export function WelcomeScreen({ onComplete, onCompanionChange }: WelcomeScreenPr
             flexDirection="column"
             marginTop={1}
             borderStyle="round"
-            borderColor="cyan"
+            borderColor="yellow"
             paddingX={2}
             paddingY={1}
           >
@@ -117,7 +100,7 @@ export function WelcomeScreen({ onComplete, onCompanionChange }: WelcomeScreenPr
             </Box>
             <Text color="gray" dimColor>
               <Text color="yellow">[↵]</Text> continue · <Text color="yellow">[Esc]</Text> back ·
-              leave empty to skip
+              leave blank to skip
             </Text>
           </Box>
         </Box>
@@ -131,7 +114,7 @@ export function WelcomeScreen({ onComplete, onCompanionChange }: WelcomeScreenPr
 
       <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>
         <Text color="white" bold>
-          Choose your setup path
+          Light the forge — choose your path
         </Text>
 
         <Box flexDirection="column" marginTop={1} gap={1}>

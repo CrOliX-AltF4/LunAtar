@@ -18,6 +18,7 @@ export async function loadExternalSkill(ref: string, cwd = process.cwd()): Promi
   return {
     id,
     name: id,
+    description: `External skill loaded from ${basename(absPath)}`,
     role: 'all',
     content,
     tokenEstimate: estimateTokens(content),

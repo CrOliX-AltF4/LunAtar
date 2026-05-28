@@ -1,5 +1,7 @@
 import type { PipelineStepStatus, ProviderName, AgentRole } from '../types/index.js';
 
+export type CompanionState = 'idle' | 'thinking' | 'forging' | 'error' | 'done';
+
 // ─── Brand ────────────────────────────────────────────────────────────────────
 
 export const BRAND_COLOR = 'yellow' as const; // Ink named color (used as prop)
@@ -27,7 +29,7 @@ export const STATUS_ICONS: Record<PipelineStepStatus, string> = {
 
 export const STATUS_COLORS: Record<PipelineStepStatus, string> = {
   pending: 'gray',
-  running: 'cyan',
+  running: 'yellow',
   completed: 'green',
   failed: 'red',
   skipped: 'gray',
@@ -64,16 +66,16 @@ export const ROLE_TASK_LABELS: Record<AgentRole, string> = {
 // ─── Agent class labels ───────────────────────────────────────────────────────
 
 export const AGENT_CLASS_LABELS: Record<AgentRole, string> = {
-  po: 'Clerc des Exigences',
-  planner: 'Mage Architecte',
-  dev: 'Forgeron de Code',
-  qa: 'Paladin de la Qualité',
+  po: 'Requirements Clerk',
+  planner: 'Architect Mage',
+  dev: 'Code Forger',
+  qa: 'Quality Paladin',
 };
 
 export const AGENT_CLASS_SHORT: Record<AgentRole, string> = {
-  po: 'Clerc    ',
+  po: 'Clerk    ',
   planner: 'Mage     ',
-  dev: 'Forgeron ',
+  dev: 'Forger   ',
   qa: 'Paladin  ',
 };
 
@@ -81,33 +83,33 @@ export const AGENT_CLASS_SHORT: Record<AgentRole, string> = {
 
 export const AGENT_FLAVOR_TEXT: Record<AgentRole, readonly string[]> = {
   po: [
-    '"Volonté du commanditaire clarifiée."',
-    '"Exigences gravées dans la pierre."',
-    '"Le parchemin est scellé."',
+    '"The requester\'s will has been clarified."',
+    '"Requirements carved in stone."',
+    '"The scroll is sealed."',
   ],
   planner: [
-    '"Le plan prend forme dans les brumes."',
-    '"La stratégie est révélée."',
-    '"Sept chemins mènent au donjon."',
+    '"The plan takes shape in the mist."',
+    '"Strategy revealed."',
+    '"Seven paths lead to the dungeon."',
   ],
   dev: [
-    '"Le marteau frappe l\'enclume une dernière fois."',
-    '"Les artefacts prennent vie."',
-    '"La forge s\'apaise."',
+    '"The hammer strikes the anvil one last time."',
+    '"The artifacts take life."',
+    '"The forge settles."',
   ],
-  qa: ['"La qualité est vérifiée."', '"Le paladin rend son verdict."', '"L\'artefact est pur."'],
+  qa: ['"Quality verified."', '"The paladin renders its verdict."', '"The artifact is pure."'],
 };
 
 // ─── Oracle messages ──────────────────────────────────────────────────────────
 
 export const ORACLE_MESSAGES: readonly string[] = [
-  '"Un forgeron patient forge deux fois."',
-  '"L\'incantation juste vaut mille lignes de code."',
-  '"La forge froide ne craint pas la tempête."',
-  '"Qui maîtrise ses outils maîtrise le donjon."',
-  '"Un parchemin bien rédigé épargne cent batailles."',
-  '"L\'architecte qui doute bâtit sur du sable."',
-  '"Le code non testé est une lame non aiguisée."',
+  '"A patient blacksmith forges twice."',
+  '"The right incantation is worth a thousand lines of code."',
+  '"A cold forge fears no storm."',
+  '"Master your tools, master the dungeon."',
+  '"A well-written scroll spares a hundred battles."',
+  '"The architect who doubts builds on sand."',
+  '"Untested code is an unsharpened blade."',
 ];
 
 // ─── File rarity ──────────────────────────────────────────────────────────────
@@ -122,10 +124,10 @@ export function getFileRarity(lineCount: number): FileRarity {
 }
 
 export const RARITY_LABELS: Record<FileRarity, string> = {
-  legendary: '[LÉGENDAIRE]',
-  rare: '[RARE     ]',
-  uncommon: '[PEU COMM.]',
-  common: '[COMMUN   ]',
+  legendary: '[LEGENDARY ]',
+  rare: '[RARE      ]',
+  uncommon: '[UNCOMMON  ]',
+  common: '[COMMON    ]',
 };
 
 export const RARITY_COLORS: Record<FileRarity, string> = {

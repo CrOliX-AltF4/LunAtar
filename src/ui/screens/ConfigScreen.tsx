@@ -64,7 +64,7 @@ export function ConfigScreen({ onConfirm, onBack, onCompanionChange }: ConfigScr
 
       <Box flexDirection="column" paddingX={2} paddingY={1} gap={1}>
         <Text color="white" bold>
-          Choose your arsenal
+          Arsenal — skills & plugins
         </Text>
 
         <Box flexDirection="column" gap={0}>
@@ -72,18 +72,34 @@ export function ConfigScreen({ onConfirm, onBack, onCompanionChange }: ConfigScr
             const { item } = entry;
             const isSelected = idx === selectedIdx;
             const isActive = activeIds.has(item.id);
+            const prevKind = idx > 0 ? allItems[idx - 1]?.kind : null;
+            const showCategoryHeader = prevKind !== entry.kind;
             return (
-              <Box key={item.id} gap={2}>
-                <Text>{isSelected ? chalk.hex(GOLD)('▶') : ' '}</Text>
-                <Text color={isActive ? 'white' : 'gray'}>
-                  {isActive ? chalk.hex(GOLD)('[✓]') : chalk.gray('[ ]')}
-                </Text>
-                <Text color={isSelected ? 'white' : 'gray'} bold={isSelected}>
-                  {item.name}
-                </Text>
-                <Text color="gray" dimColor>
-                  {entry.kind} · {item.role}
-                </Text>
+              <Box key={item.id} flexDirection="column">
+                {showCategoryHeader && (
+                  <Box marginTop={idx > 0 ? 1 : 0}>
+                    <Text color="gray" dimColor>
+                      {'─'.repeat(3)} {entry.kind === 'skill' ? 'SKILLS' : 'PLUGINS'}{' '}
+                      {'─'.repeat(3)}
+                    </Text>
+                  </Box>
+                )}
+                <Box gap={2}>
+                  <Text>{isSelected ? chalk.hex(GOLD)('▶') : ' '}</Text>
+                  <Text color={isActive ? 'white' : 'gray'}>
+                    {isActive ? chalk.hex(GOLD)('[✓]') : chalk.gray('[ ]')}
+                  </Text>
+                  <Text color={isSelected ? 'white' : 'gray'} bold={isSelected}>
+                    {item.name}
+                  </Text>
+                  {isSelected ? (
+                    <Text color="gray">{item.description}</Text>
+                  ) : (
+                    <Text color="gray" dimColor>
+                      {item.role}
+                    </Text>
+                  )}
+                </Box>
               </Box>
             );
           })}

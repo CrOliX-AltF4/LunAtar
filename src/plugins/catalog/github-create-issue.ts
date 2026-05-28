@@ -9,6 +9,7 @@ interface GithubIssueInput {
 export const githubCreateIssuePlugin: Plugin = {
   id: 'github_create_issue',
   name: 'GitHub Create Issue',
+  description: 'Open a GitHub issue with the QA report when verdict is FAIL',
   role: 'qa',
   tool: {
     name: 'github_create_issue',

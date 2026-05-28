@@ -21,6 +21,7 @@ interface ExecuteCodeOutput {
 export const executeCodePlugin: Plugin = {
   id: 'execute_code',
   name: 'Execute Code',
+  description: 'Execute a file in a subprocess and return stdout/stderr/exit code',
   role: 'qa',
   tool: {
     name: 'execute_code',

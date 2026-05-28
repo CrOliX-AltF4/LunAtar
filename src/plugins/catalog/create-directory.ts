@@ -9,6 +9,7 @@ interface CreateDirectoryInput {
 export const createDirectoryPlugin: Plugin = {
   id: 'create_directory',
   name: 'Create Directory',
+  description: 'Create a directory (and parents) at a given path',
   role: 'all',
   tool: {
     name: 'create_directory',

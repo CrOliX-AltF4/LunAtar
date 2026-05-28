@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, useInput, useApp } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { exec } from 'node:child_process';
@@ -7,7 +7,6 @@ import { promisify } from 'node:util';
 
 const execAsync = promisify(exec);
 import { Separator } from '../components/Separator.js';
-import type { OnCompanionChange } from '../workspace/types.js';
 import { STATUS_COLORS, GOLD, getFileRarity, RARITY_LABELS, RARITY_COLORS } from '../theme.js';
 import type { PipelineRun, AgentRole } from '../../types/index.js';
 import type { DevOutput, POOutput, PlannerOutput, QAOutput, QAIssue } from '../../agents/types.js';
@@ -38,17 +37,28 @@ function formatDuration(ms: number): string {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+function ScoreBar({ score }: { score: number }) {
+  const filled = Math.round(score / 10);
+  const color = score >= 80 ? 'green' : score >= 50 ? 'yellow' : 'red';
+  return (
+    <Box gap={1}>
+      <Text color={color}>{'▓'.repeat(filled) + '░'.repeat(10 - filled)}</Text>
+      <Text color="gray" dimColor>
+        {score}/100
+      </Text>
+    </Box>
+  );
+}
+
 function VerdictBadge({ verdict, score }: { verdict: QAOutput['verdict']; score: number }) {
   const color = verdict === 'pass' ? 'green' : verdict === 'partial' ? 'yellow' : 'red';
   const icon = verdict === 'pass' ? '✓' : verdict === 'partial' ? '~' : '✗';
   return (
-    <Box gap={2}>
+    <Box flexDirection="column" gap={0}>
       <Text color={color} bold>
         {icon} {verdict.toUpperCase()}
       </Text>
-      <Text color="gray">
-        score <Text color="white">{score}/100</Text>
-      </Text>
+      <ScoreBar score={score} />
     </Box>
   );
 }
@@ -70,9 +80,9 @@ function IssueRow({ issue }: { issue: QAIssue }) {
 // ─── Tab bar ─────────────────────────────────────────────────────────────────
 
 const TAB_LABELS: Record<Tab, string> = {
-  overview: 'Overview',
-  files: 'Files',
-  plan: 'Plan',
+  overview: 'Verdict',
+  files: 'Artefacts',
+  plan: 'Stratégie',
   diff: 'Diff',
 };
 
@@ -85,8 +95,11 @@ function TabBar({ active }: { active: Tab }) {
         const key = String(i + 1);
         return (
           <Box key={tab} paddingX={1}>
-            <Text color={isActive ? 'cyan' : 'gray'} {...(isActive ? { bold: true } : {})}>
-              [{key}] {TAB_LABELS[tab]}
+            <Text
+              color={isActive ? GOLD : 'gray'}
+              {...(isActive ? { bold: true } : { dimColor: true })}
+            >
+              {isActive ? '▶' : ' '} {key}· {TAB_LABELS[tab]}
             </Text>
           </Box>
         );
@@ -113,7 +126,7 @@ function OverviewTab({ run, qa }: OverviewTabProps) {
       {qa ? (
         <Box flexDirection="column" gap={0}>
           <Text color="gray" bold>
-            QA verdict
+            Quality verdict
           </Text>
           <VerdictBadge verdict={qa.verdict} score={qa.score} />
           {[...criticalIssues, ...majorIssues, ...minorIssues].map((issue, i) => (
@@ -121,7 +134,7 @@ function OverviewTab({ run, qa }: OverviewTabProps) {
           ))}
           {qa.issues.length === 0 && (
             <Text color="gray" dimColor>
-              No issues found
+              No issues detected
             </Text>
           )}
           {qa.suggestions.length > 0 && (
@@ -138,7 +151,7 @@ function OverviewTab({ run, qa }: OverviewTabProps) {
           )}
         </Box>
       ) : (
-        <Text color={STATUS_COLORS.failed}>QA step did not complete</Text>
+        <Text color={STATUS_COLORS.failed}>Quality step incomplete</Text>
       )}
 
       {/* Summary */}
@@ -191,7 +204,7 @@ function FilesTab({ dev, selectedIndex }: FilesTabProps) {
           const rarityLabel = RARITY_LABELS[rarity];
           return (
             <Box key={f.path} gap={2}>
-              <Text color={isSelected ? 'cyan' : 'gray'}>{isSelected ? '▶' : ' '}</Text>
+              <Text color={isSelected ? 'yellow' : 'gray'}>{isSelected ? '▶' : ' '}</Text>
               <Text color={rarityColor} dimColor>
                 {rarityLabel}
               </Text>
@@ -253,7 +266,7 @@ interface PlanTabProps {
 
 function PlanTab({ planner }: PlanTabProps) {
   if (!planner) {
-    return <Text color="gray">Planner step did not complete.</Text>;
+    return <Text color="gray">Planning step incomplete.</Text>;
   }
 
   return (
@@ -274,7 +287,7 @@ function PlanTab({ planner }: PlanTabProps) {
           </Text>
           <Box gap={2} flexWrap="wrap">
             {planner.techStack.map((t, i) => (
-              <Text key={i} color="cyan">
+              <Text key={i} color="yellow">
                 {t}
               </Text>
             ))}
@@ -438,6 +451,18 @@ async function saveArtifacts(
   return outputDir;
 }
 
+// ─── Apply to CWD ────────────────────────────────────────────────────────────
+
+async function applyToCwd(dev: DevOutput): Promise<number> {
+  const cwd = process.cwd();
+  for (const file of dev.files) {
+    const dest = join(cwd, file.path);
+    await mkdir(dirname(dest), { recursive: true });
+    await writeFile(dest, file.content, 'utf8');
+  }
+  return dev.files.length;
+}
+
 // ─── Diff tab ─────────────────────────────────────────────────────────────────
 
 const MAX_DIFF_LINES = 150;
@@ -468,7 +493,7 @@ function DiffTab() {
   if (loading) {
     return (
       <Text color="gray" dimColor>
-        Lecture du diff…
+        Loading diff...
       </Text>
     );
   }
@@ -476,7 +501,7 @@ function DiffTab() {
   if (!diff) {
     return (
       <Text color="gray" dimColor>
-        Aucune modification Git. Utilisez --apply pour appliquer les changements.
+        No git changes. Use --apply to apply the output.
       </Text>
     );
   }
@@ -488,7 +513,7 @@ function DiffTab() {
       {stat.length > 0 && (
         <Box flexDirection="column" gap={0}>
           <Text color="gray" bold>
-            Résumé
+            Summary
           </Text>
           {stat.split('\n').map((line, i) => (
             <Text key={i} color="gray">
@@ -518,7 +543,7 @@ function DiffTab() {
         })}
         {diff.split('\n').length > MAX_DIFF_LINES && (
           <Text color="gray" dimColor>
-            … {diff.split('\n').length - MAX_DIFF_LINES} lignes supplémentaires
+            … {diff.split('\n').length - MAX_DIFF_LINES} more lines
           </Text>
         )}
       </Box>
@@ -530,15 +555,15 @@ function DiffTab() {
 
 function forgeHeader(run: PipelineRun, qa: QAOutput | null): { text: string; color: string } {
   if (run.status === 'failed' || run.steps.some((s) => s.status === 'failed')) {
-    return { text: "✗ ÉCHEC CRITIQUE — La forge s'est éteinte", color: 'red' };
+    return { text: '✗ FORGE FAILURE — The furnace went cold', color: 'red' };
   }
-  if (!qa) return { text: '✦ Artefact scellé', color: 'green' };
+  if (!qa) return { text: '✦ Artifact sealed', color: 'green' };
   if (qa.verdict === 'pass' && qa.score >= 95) {
-    return { text: '✦ CRITIQUE ! Artefact Légendaire scellé', color: GOLD };
+    return { text: '✦ CRITICAL HIT! Legendary Artifact forged', color: GOLD };
   }
-  if (qa.verdict === 'pass') return { text: '✦ Artefact scellé', color: 'green' };
-  if (qa.verdict === 'partial') return { text: '◈ Artefact imparfait', color: 'yellow' };
-  return { text: "✗ La qualité n'est pas au rendez-vous", color: 'red' };
+  if (qa.verdict === 'pass') return { text: '✦ Artifact sealed', color: 'green' };
+  if (qa.verdict === 'partial') return { text: '◈ Imperfect Artifact', color: 'yellow' };
+  return { text: '✗ Quality failed — the forge grows cold', color: 'red' };
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -547,20 +572,15 @@ interface ResultsScreenProps {
   run: PipelineRun;
   onNewPipeline?: () => void;
   readOnly?: boolean;
-  onCompanionChange?: OnCompanionChange;
 }
 
-export function ResultsScreen({
-  run,
-  onNewPipeline,
-  readOnly,
-  onCompanionChange,
-}: ResultsScreenProps) {
-  const app = useApp();
+export function ResultsScreen({ run, onNewPipeline, readOnly }: ResultsScreenProps) {
   const [tab, setTab] = useState<Tab>('overview');
   const [selectedFile, setSelectedFile] = useState(0);
   const [savedPath, setSavedPath] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [applied, setApplied] = useState<number | null>(null);
+  const [applying, setApplying] = useState(false);
 
   const qa = parseStepOutput(run, 'qa') as QAOutput | null;
   const dev = parseStepOutput(run, 'dev') as DevOutput | null;
@@ -568,10 +588,6 @@ export function ResultsScreen({
   const planner = parseStepOutput(run, 'planner') as PlannerOutput | null;
   const fileCount = dev?.files.length ?? 0;
   const header = forgeHeader(run, qa);
-
-  useEffect(() => {
-    onCompanionChange?.({ state: 'done' });
-  }, []);
 
   useInput((input, key) => {
     // Tab switching
@@ -587,7 +603,7 @@ export function ResultsScreen({
     }
 
     // Actions
-    if (input === 'q') app.exit();
+    if (input === 'q' && !readOnly && onNewPipeline) onNewPipeline();
     if (input === 'r' && !readOnly && onNewPipeline) onNewPipeline();
     if (input === 's' && !readOnly && dev && !saving && !savedPath) {
       setSaving(true);
@@ -597,6 +613,16 @@ export function ResultsScreen({
         })
         .finally(() => {
           setSaving(false);
+        });
+    }
+    if (input === 'a' && !readOnly && dev && !applying && applied === null) {
+      setApplying(true);
+      void applyToCwd(dev)
+        .then((count) => {
+          setApplied(count);
+        })
+        .finally(() => {
+          setApplying(false);
         });
     }
   });
@@ -627,16 +653,22 @@ export function ResultsScreen({
           {tab === 'diff' && <DiffTab />}
         </Box>
 
-        {/* Save feedback */}
-        {saving && <Text color="cyan">Saving files...</Text>}
+        {/* Feedback */}
+        {saving && <Text color="yellow">Sealing artifacts...</Text>}
         {savedPath && (
           <Box flexDirection="column" gap={0}>
-            <Text color="green">✓ Saved to {savedPath}</Text>
+            <Text color="green">✓ Artifacts sealed at {savedPath}</Text>
             <Text color="gray" dimColor>
-              code files{po ? ' · requirements.md' : ''}
+              files{po ? ' · requirements.md' : ''}
               {planner ? ' · plan.md' : ''}
             </Text>
           </Box>
+        )}
+        {applying && <Text color="yellow">Deploying to dungeon...</Text>}
+        {applied !== null && (
+          <Text color="green">
+            ✓ Deployed {String(applied)} file{applied !== 1 ? 's' : ''} to {process.cwd()}
+          </Text>
         )}
       </Box>
 
@@ -644,17 +676,19 @@ export function ResultsScreen({
       <Box gap={3} paddingX={1} marginTop={1}>
         {!readOnly && dev && !savedPath && (
           <Text color="gray">
-            <Text color="cyan">[s]</Text> save
+            <Text color="yellow">[s]</Text> seal artifacts
+          </Text>
+        )}
+        {!readOnly && dev && applied === null && (
+          <Text color="gray">
+            <Text color="yellow">[a]</Text> deploy to dungeon
           </Text>
         )}
         {!readOnly && (
           <Text color="gray">
-            <Text color="cyan">[r]</Text> new
+            <Text color="yellow">[r / q]</Text> new forge
           </Text>
         )}
-        <Text color="gray">
-          <Text color="cyan">[q]</Text> quit
-        </Text>
       </Box>
     </Box>
   );
