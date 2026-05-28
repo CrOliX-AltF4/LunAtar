@@ -15,16 +15,9 @@ _A multi-agent AI pipeline CLI. Feed the forge a plain-text intent — refined, 
 
 ---
 
-```
-⚒ Lun'Atar  ·  Dungeon: my-project  ·  -- Cold forge            Blacksmith Lv.3  v1.0.0
-─────────────────────────────────◆───────────────────────────────────────────────────────
-    ▲  ▲▲                     ⚄ "A patient blacksmith forges twice."
-   ▲▲ ◉ ◉ ▲▲
-  ▲▲▲  ~~  ▲▲                  type / for commands
-    ▓▒░▒▓
-─────────────────────────────────◆───────────────────────────────────────────────────────
-  › a REST API to manage users…                     [/] commands    [ctrl+c] quit
-```
+<div align="center">
+  <img src="assets/calcifer-f0.png" alt="Lun'Atar — the forge spirit" width="140"/>
+</div>
 
 ---
 
