@@ -10,7 +10,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.ts'],
-      exclude: ['src/cli/index.ts', 'src/**/*.d.ts', 'src/ui/**/*.ts'],
+      exclude: ['src/cli/index.ts', 'src/**/*.d.ts', 'src/ui/**/*.ts', 'src/pipeline/demo.ts'],
       thresholds: {
         statements: 50,
         branches: 50,
