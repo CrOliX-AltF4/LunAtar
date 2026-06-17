@@ -44,6 +44,7 @@ describe('callAgent with plugins', () => {
       id: 'mock_tool',
       name: 'Mock Tool',
       role: 'dev',
+      tier: 'safe',
       tool: {
         name: 'mock_tool',
         description: 'A mock tool',

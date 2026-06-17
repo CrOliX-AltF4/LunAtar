@@ -4,6 +4,7 @@ import type { LLMProvider, Message, ToolResultMessage } from '../providers/types
 import type { AgentMeta, AgentResult } from './types.js';
 import type { Skill } from '../skills/types.js';
 import type { Plugin, PluginContext } from '../plugins/types.js';
+import { isPermitted } from '../plugins/permissions.js';
 
 // ─── JSON extraction ──────────────────────────────────────────────────────────
 
@@ -158,10 +159,14 @@ export async function callAgent<T>(
         const plugin = activePlugins.find((p) => p.tool.name === tc.name);
         let result: string;
         if (plugin) {
-          try {
-            result = await plugin.handler(tc.input, pluginContext);
-          } catch (err) {
-            result = `Tool error: ${String(err instanceof Error ? err.message : err)}`;
+          if (!isPermitted(plugin)) {
+            result = `Permission denied: "${plugin.name}" requires ${plugin.tier} access. Grant it with: lunatar permissions grant ${plugin.id}`;
+          } else {
+            try {
+              result = await plugin.handler(tc.input, pluginContext);
+            } catch (err) {
+              result = `Tool error: ${String(err instanceof Error ? err.message : err)}`;
+            }
           }
         } else {
           result = `Unknown tool: ${tc.name}`;
