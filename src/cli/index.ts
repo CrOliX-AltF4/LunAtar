@@ -166,6 +166,16 @@ program
     catalogCommand();
   });
 
+// ─── install ──────────────────────────────────────────────────────────────────
+
+program
+  .command('install <type> <name>')
+  .description('install a skill or plugin from npm (lunatar-skill-* / lunatar-plugin-*)')
+  .action(async (type: string, name: string) => {
+    const { installCommand } = await import('./commands/install.js');
+    installCommand(type, name);
+  });
+
 // ─── costs ────────────────────────────────────────────────────────────────────
 
 program
