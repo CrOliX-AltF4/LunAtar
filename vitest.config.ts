@@ -15,6 +15,7 @@ export default defineConfig({
         'src/**/*.d.ts',
         'src/ui/**/*.ts',
         'src/pipeline/demo.ts',
+        'src/plugins/mcp/**',
         'src/plugins/permissions.ts',
       ],
       thresholds: {

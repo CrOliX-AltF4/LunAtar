@@ -53,6 +53,7 @@ export async function loadProjectConfig(cwd: string): Promise<ProjectConfig> {
     providers: {
       fallback: parsed.providers?.fallback ?? [],
     },
+    ...(parsed.mcpServers ? { mcpServers: parsed.mcpServers } : {}),
   };
 }
 

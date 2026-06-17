@@ -12,6 +12,7 @@ import type { Skill } from '../skills/types.js';
 import type { Plugin } from '../plugins/types.js';
 import { loadExternalSkill, discoverNpmSkills } from '../skills/loader.js';
 import { loadExternalPlugin, discoverNpmPlugins } from '../plugins/loader.js';
+import { loadMcpPlugins } from '../plugins/mcp/index.js';
 import { isRetriableError } from './errors.js';
 import type { PipelineEvent } from '../types/events.js';
 
@@ -101,15 +102,18 @@ export async function runPipeline(
     const externalSkillPaths = projectConfig.skills.external ?? [];
     const externalPluginPaths = projectConfig.plugins.external ?? [];
 
-    const [externalSkills, npmSkills, externalPlugins, npmPlugins] = await Promise.all([
+    const mcpServers = projectConfig.mcpServers ?? {};
+
+    const [externalSkills, npmSkills, externalPlugins, npmPlugins, mcpPlugins] = await Promise.all([
       Promise.all(externalSkillPaths.map((p) => loadExternalSkill(p, process.cwd()))),
       discoverNpmSkills(process.cwd()),
       Promise.all(externalPluginPaths.map((p) => loadExternalPlugin(p, process.cwd()))),
       discoverNpmPlugins(process.cwd()),
+      Object.keys(mcpServers).length > 0 ? loadMcpPlugins(mcpServers) : Promise.resolve([]),
     ]);
 
     skillRegistry = new SkillRegistry([...externalSkills, ...npmSkills]);
-    pluginRegistry = new PluginRegistry([...externalPlugins, ...npmPlugins]);
+    pluginRegistry = new PluginRegistry([...externalPlugins, ...npmPlugins, ...mcpPlugins]);
   } catch (initErr) {
     run.status = 'failed';
     for (let i = 0; i < run.steps.length; i++) {

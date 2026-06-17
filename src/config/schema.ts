@@ -47,5 +47,19 @@ export const projectConfigSchema = {
         fallback: { type: 'array', items: { type: 'string' } },
       },
     },
+    mcpServers: {
+      type: 'object',
+      additionalProperties: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['command'],
+        properties: {
+          command: { type: 'string' },
+          args: { type: 'array', items: { type: 'string' } },
+          env: { type: 'object', additionalProperties: { type: 'string' } },
+          role: { type: 'string', enum: ['po', 'planner', 'dev', 'qa', 'all'] },
+        },
+      },
+    },
   },
 } as const;
