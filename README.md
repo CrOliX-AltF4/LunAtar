@@ -203,6 +203,18 @@ lunatar init                                    # scaffold a new project
 
 ---
 
+## Lun ecosystem
+
+| Project                                                    | Role                                                      |
+| ---------------------------------------------------------- | --------------------------------------------------------- |
+| **LunAtar**                                                | AI dev pipeline — intent → code                           |
+| [LunAcedia](https://github.com/CrOliX-AltF4/LunAcedia)     | Information infrastructure — events · actions · AI butler |
+| [LunAvaritia](https://github.com/CrOliX-AltF4/LunAvaritia) | Mobile companion — Android                                |
+| [LunImago](https://github.com/CrOliX-AltF4/LunImago)       | Imitation learning — gameplay → ONNX policy               |
+| LunAnima                                                   | AI companion core — private                               |
+
+---
+
 <div align="center">
 
 Built by **[CrOliX-AltF4](https://github.com/CrOliX-AltF4)** · MIT License · © 2026
