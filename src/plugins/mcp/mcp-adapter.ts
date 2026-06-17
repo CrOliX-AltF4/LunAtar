@@ -144,6 +144,7 @@ export async function loadMcpServer(
         name: `${tool.name} (${serverName})`,
         description: tool.description ?? `MCP tool ${tool.name} from server ${serverName}`,
         role: config.role ?? 'all',
+        tier: 'restricted' as const,
         tool: {
           name: `mcp__${serverName}__${tool.name}`,
           description: tool.description ?? `MCP tool ${tool.name}`,
