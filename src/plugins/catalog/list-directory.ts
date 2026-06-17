@@ -11,6 +11,7 @@ export const listDirectoryPlugin: Plugin = {
   name: 'List Directory',
   description: 'List files and directories at a given path',
   role: 'all',
+  tier: 'safe',
   tool: {
     name: 'list_directory',
     description: 'List the contents of a directory relative to the project root.',

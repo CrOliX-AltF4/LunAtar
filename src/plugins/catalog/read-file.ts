@@ -11,6 +11,7 @@ export const readFilePlugin: Plugin = {
   name: 'Read File',
   description: 'Read a file from disk and return its content',
   role: 'all',
+  tier: 'safe',
   tool: {
     name: 'read_file',
     description: 'Read an existing file from the project directory for context.',

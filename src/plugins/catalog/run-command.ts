@@ -10,6 +10,7 @@ export const runCommandPlugin: Plugin = {
   name: 'Run Command',
   description: 'Execute a shell command and return stdout',
   role: 'dev',
+  tier: 'dangerous',
   tool: {
     name: 'run_command',
     description: 'Run a shell command in the project directory and return its output.',

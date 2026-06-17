@@ -12,6 +12,7 @@ export const fileWritePlugin: Plugin = {
   name: 'Write File',
   description: 'Write a file to the output directory',
   role: 'dev',
+  tier: 'restricted',
   tool: {
     name: 'file_write',
     description: 'Write a file to the output directory.',
