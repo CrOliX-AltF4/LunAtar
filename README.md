@@ -101,10 +101,12 @@ _Skills_ are expertise injected into agent prompts — TypeScript conventions, R
 
 _Plugins_ are tools the agents can wield — write files, read context, web search, run commands, execute code, open GitHub issues. Bridges to the outside world.
 
+Every plugin carries a safety tier — `safe`, `restricted`, or `dangerous`. The first time you activate a restricted or dangerous plugin from the Arsenal screen, Lun'Atar prompts for consent. Grants are saved in `~/.config/lunatar/permissions.json` so you're only asked once.
+
 Both are declared per-project via `lunatar.config.json` and selectable per-run from the TUI (`/arsenal`).
 
 > [!NOTE]
-> Skills and plugins are community-extensible via npm packages (`lunatar-skill-*`, `lunatar-plugin-*`). Install one and Lun'Atar discovers it automatically.
+> Skills and plugins are community-extensible via npm packages (`lunatar-skill-*`, `lunatar-plugin-*`). Install with `lunatar install skill <name>` or `lunatar install plugin <name>`, and Lun'Atar discovers them automatically.
 
 **TUI**
 
@@ -155,6 +157,8 @@ lunatar history                                 # browse the Annales
 lunatar costs                                   # combustible spent
 lunatar watch ./src --intent intent.txt         # re-forge on file change
 lunatar catalog                                 # list available skills and plugins
+lunatar install skill <name>                    # install a lunatar-skill-* package
+lunatar install plugin <name>                   # install a lunatar-plugin-* package
 lunatar init                                    # scaffold a new project
 ```
 
