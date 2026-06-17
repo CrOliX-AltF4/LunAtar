@@ -8,6 +8,7 @@ import { SkillRegistry } from '../../skills/registry.js';
 import { PluginRegistry } from '../../plugins/registry.js';
 import type { Skill } from '../../skills/types.js';
 import type { Plugin } from '../../plugins/types.js';
+import { isPermitted, grantPermission } from '../../plugins/permissions.js';
 
 interface ConfigScreenProps {
   onConfirm: (activeSkillIds: string[], activePluginIds: string[]) => void;
@@ -20,6 +21,12 @@ type Item = { kind: 'skill'; item: Skill } | { kind: 'plugin'; item: Plugin };
 const skillRegistry = new SkillRegistry();
 const pluginRegistry = new PluginRegistry();
 
+const TIER_LABEL: Record<string, string> = {
+  safe: chalk.green('[safe]'),
+  restricted: chalk.yellow('[restricted]'),
+  dangerous: chalk.red('[dangerous]'),
+};
+
 export function ConfigScreen({ onConfirm, onBack, onCompanionChange }: ConfigScreenProps) {
   const allItems: Item[] = [
     ...skillRegistry.getAll().map((s): Item => ({ kind: 'skill', item: s })),
@@ -28,23 +35,55 @@ export function ConfigScreen({ onConfirm, onBack, onCompanionChange }: ConfigScr
 
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [activeIds, setActiveIds] = useState<Set<string>>(new Set());
+  const [confirmPlugin, setConfirmPlugin] = useState<Plugin | null>(null);
 
   useEffect(() => {
     onCompanionChange?.({ state: 'thinking', poSpeech: 'Pesant ton arsenal...' });
   }, []);
 
+  const togglePlugin = (plugin: Plugin) => {
+    if (activeIds.has(plugin.id)) {
+      setActiveIds((prev) => {
+        const next = new Set(prev);
+        next.delete(plugin.id);
+        return next;
+      });
+      return;
+    }
+    if (isPermitted(plugin)) {
+      setActiveIds((prev) => new Set(prev).add(plugin.id));
+    } else {
+      setConfirmPlugin(plugin);
+    }
+  };
+
   useInput((input, key) => {
+    if (confirmPlugin) {
+      if (input === 'y' || input === 'Y') {
+        grantPermission(confirmPlugin.id);
+        setActiveIds((prev) => new Set(prev).add(confirmPlugin.id));
+        setConfirmPlugin(null);
+      } else if (input === 'n' || input === 'N' || key.escape) {
+        setConfirmPlugin(null);
+      }
+      return;
+    }
     if (key.upArrow) setSelectedIdx((i) => Math.max(0, i - 1));
     if (key.downArrow) setSelectedIdx((i) => Math.min(allItems.length - 1, i + 1));
     if (input === ' ') {
-      const id = allItems[selectedIdx]?.item.id ?? '';
-      if (!id) return;
-      setActiveIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        return next;
-      });
+      const entry = allItems[selectedIdx];
+      if (!entry) return;
+      if (entry.kind === 'plugin') {
+        togglePlugin(entry.item);
+      } else {
+        const id = entry.item.id;
+        setActiveIds((prev) => {
+          const next = new Set(prev);
+          if (next.has(id)) next.delete(id);
+          else next.add(id);
+          return next;
+        });
+      }
     }
     if (key.return) {
       const activeSkillIds = allItems
@@ -67,6 +106,20 @@ export function ConfigScreen({ onConfirm, onBack, onCompanionChange }: ConfigScr
           Arsenal — skills & plugins
         </Text>
 
+        {confirmPlugin && (
+          <Box flexDirection="column" borderStyle="round" borderColor="yellow" paddingX={1}>
+            <Text color="yellow" bold>
+              ⚠ {confirmPlugin.tier === 'dangerous' ? 'Dangerous' : 'Restricted'} plugin:{' '}
+              {confirmPlugin.name}
+            </Text>
+            <Text color="gray">{confirmPlugin.description}</Text>
+            <Text>
+              Grant <Text color="yellow">{confirmPlugin.tier}</Text> access and remember?{' '}
+              <Text color="green">[y]</Text>es / <Text color="red">[n]</Text>o
+            </Text>
+          </Box>
+        )}
+
         <Box flexDirection="column" gap={0}>
           {allItems.map((entry, idx) => {
             const { item } = entry;
@@ -74,6 +127,7 @@ export function ConfigScreen({ onConfirm, onBack, onCompanionChange }: ConfigScr
             const isActive = activeIds.has(item.id);
             const prevKind = idx > 0 ? allItems[idx - 1]?.kind : null;
             const showCategoryHeader = prevKind !== entry.kind;
+            const tierLabel = entry.kind === 'plugin' ? (TIER_LABEL[entry.item.tier] ?? '') : null;
             return (
               <Box key={item.id} flexDirection="column">
                 {showCategoryHeader && (
@@ -92,6 +146,7 @@ export function ConfigScreen({ onConfirm, onBack, onCompanionChange }: ConfigScr
                   <Text color={isSelected ? 'white' : 'gray'} bold={isSelected}>
                     {item.name}
                   </Text>
+                  {tierLabel && <Text>{tierLabel}</Text>}
                   {isSelected ? (
                     <Text color="gray">{item.description}</Text>
                   ) : (

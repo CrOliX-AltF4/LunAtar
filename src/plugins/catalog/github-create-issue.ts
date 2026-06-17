@@ -11,6 +11,7 @@ export const githubCreateIssuePlugin: Plugin = {
   name: 'GitHub Create Issue',
   description: 'Open a GitHub issue with the QA report when verdict is FAIL',
   role: 'qa',
+  tier: 'restricted',
   tool: {
     name: 'github_create_issue',
     description: 'Open a GitHub issue with the QA report when verdict is FAIL.',

@@ -30,7 +30,7 @@ export async function loadExternalPlugin(ref: string, cwd = process.cwd()): Prom
     throw new Error(`Invalid plugin at "${ref}": must export { id, name, role, tool, handler }`);
   }
 
-  return plugin;
+  return { tier: 'restricted' as const, ...plugin };
 }
 
 export async function discoverNpmPlugins(cwd = process.cwd()): Promise<Plugin[]> {

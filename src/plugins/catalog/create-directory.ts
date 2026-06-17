@@ -11,6 +11,7 @@ export const createDirectoryPlugin: Plugin = {
   name: 'Create Directory',
   description: 'Create a directory (and parents) at a given path',
   role: 'all',
+  tier: 'restricted',
   tool: {
     name: 'create_directory',
     description: 'Create a directory (and any missing parents) relative to the project root.',

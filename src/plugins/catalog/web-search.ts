@@ -9,6 +9,7 @@ export const webSearchPlugin: Plugin = {
   name: 'Web Search',
   description: 'Search the web and return summarised results',
   role: 'all',
+  tier: 'safe',
   tool: {
     name: 'web_search',
     description: 'Search the web for relevant information.',

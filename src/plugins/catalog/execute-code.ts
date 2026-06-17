@@ -23,6 +23,7 @@ export const executeCodePlugin: Plugin = {
   name: 'Execute Code',
   description: 'Execute a file in a subprocess and return stdout/stderr/exit code',
   role: 'qa',
+  tier: 'dangerous',
   tool: {
     name: 'execute_code',
     description:
