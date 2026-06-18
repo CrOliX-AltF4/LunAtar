@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ciYml, lunatarConfig, readmeMd } from '../../src/init/templates/core.js';
+import { ciYml, luniraConfig, readmeMd } from '../../src/init/templates/core.js';
 import { buildGuidance } from '../../src/init/scaffolder.js';
 
 describe('ciYml', () => {
@@ -10,9 +10,9 @@ describe('ciYml', () => {
   });
 });
 
-describe('lunatarConfig', () => {
+describe('luniraConfig', () => {
   it('returns valid JSON with skills and plugins sections', () => {
-    const raw = lunatarConfig();
+    const raw = luniraConfig();
     const parsed = JSON.parse(raw) as unknown;
     expect(parsed).toMatchObject({
       skills: expect.any(Object) as unknown,
@@ -21,7 +21,7 @@ describe('lunatarConfig', () => {
   });
 
   it('pre-enables typescript-strict and conventional-commits skills', () => {
-    const parsed = JSON.parse(lunatarConfig()) as { skills: { all: string[] } };
+    const parsed = JSON.parse(luniraConfig()) as { skills: { all: string[] } };
     expect(parsed.skills.all).toContain('typescript-strict');
     expect(parsed.skills.all).toContain('conventional-commits');
   });
