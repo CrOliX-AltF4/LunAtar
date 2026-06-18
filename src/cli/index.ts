@@ -62,6 +62,10 @@ program
   .option('--max-iterations <n>', 'max Dev→QA retry iterations on QA fail (default: 2)', (v) =>
     parseInt(v, 10),
   )
+  .option(
+    '--plan-review',
+    'pause after Planner and require human approval before Dev runs (headless mode only)',
+  )
   .option('--no-banner', 'suppress the startup banner (also: LUNATAR_NO_BANNER=1)')
   .action(
     async (
@@ -80,6 +84,7 @@ program
         budgetUsd?: number;
         dailyBudgetUsd?: number;
         maxIterations?: number;
+        planReview?: boolean;
         noBanner?: boolean;
       },
     ) => {
@@ -98,6 +103,7 @@ program
         ...(opts?.budgetUsd !== undefined ? { budgetUsd: opts.budgetUsd } : {}),
         ...(opts?.dailyBudgetUsd !== undefined ? { dailyBudgetUsd: opts.dailyBudgetUsd } : {}),
         ...(opts?.maxIterations !== undefined ? { maxIterations: opts.maxIterations } : {}),
+        ...(opts?.planReview ? { planReview: true } : {}),
         ...(opts?.noBanner ? { noBanner: true } : {}),
       });
     },

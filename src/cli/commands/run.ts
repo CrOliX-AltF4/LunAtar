@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
+import * as readline from 'node:readline';
 import { render } from 'ink';
 import React from 'react';
 import { Workspace } from '../../ui/workspace/Workspace.js';
@@ -7,7 +8,7 @@ import { buildDefaultSteps, parseSkipRoles, applyStepOverrides } from '../../pip
 import type { PipelinePreload, PipelineOverride } from '../../pipeline/index.js';
 import { getModelById } from '../../models/catalog.js';
 import * as orchestrator from '../../orchestrator/index.js';
-import type { POOutput, CodeFile } from '../../agents/types.js';
+import type { POOutput, PlannerOutput, CodeFile } from '../../agents/types.js';
 import type { AgentRole, PipelineStep, ProviderName } from '../../types/index.js';
 import type { PipelineEvent } from '../../types/events.js';
 import { gatherWorkspaceContext } from '../workspace-context.js';
@@ -52,6 +53,7 @@ interface RunOptions {
   budgetUsd?: number;
   dailyBudgetUsd?: number;
   maxIterations?: number;
+  planReview?: boolean;
 }
 
 // ─── PO output loader ─────────────────────────────────────────────────────────
@@ -212,6 +214,7 @@ async function headlessRun(
   model?: string,
   provider?: string,
   suggestCommit?: boolean,
+  planReview?: boolean,
 ): Promise<void> {
   let steps = buildDefaultSteps(skipRoles);
   if (model !== undefined || provider !== undefined) {
@@ -269,7 +272,36 @@ async function headlessRun(
       }
     : undefined;
 
-  const run = await orchestrator.run(intent, steps, onUpdate, preload, pipelineOverride, onEvent);
+  const headlessOnPlanReview = planReview
+    ? (plan: PlannerOutput): Promise<'approve' | 'reject'> => {
+        process.stderr.write('\n─── Plan Review ─────────────────────────────────────────\n');
+        process.stderr.write(`Architecture: ${plan.architecture}\n`);
+        process.stderr.write(`Tasks: ${String(plan.tasks.length)}\n`);
+        if (plan.estimatedFiles.length > 0) {
+          process.stderr.write(`Files: ${plan.estimatedFiles.join(', ')}\n`);
+        }
+        if (plan.risks.length > 0) {
+          process.stderr.write(`Risks: ${plan.risks.join(' · ')}\n`);
+        }
+        process.stderr.write('─────────────────────────────────────────────────────────\n');
+
+        return new Promise((resolve) => {
+          const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
+          rl.question('Approve plan? [Y/n] ', (answer) => {
+            rl.close();
+            const trimmed = answer.trim().toLowerCase();
+            resolve(trimmed === '' || trimmed === 'y' ? 'approve' : 'reject');
+          });
+        });
+      }
+    : undefined;
+
+  const effectiveOverride: PipelineOverride = {
+    ...pipelineOverride,
+    ...(headlessOnPlanReview ? { onPlanReview: headlessOnPlanReview } : {}),
+  };
+
+  const run = await orchestrator.run(intent, steps, onUpdate, preload, effectiveOverride, onEvent);
 
   process.stderr.write(
     `\nDone — status: ${run.status} · $${run.totalCostUsd.toFixed(4)} · ${run.totalTokens.toLocaleString()} tok · ${(run.totalDurationMs / 1000).toFixed(1)}s\n`,
@@ -435,6 +467,7 @@ export async function runCommand(options: RunOptions): Promise<void> {
       options.model,
       options.provider,
       options.apply,
+      options.planReview,
     );
     return;
   }

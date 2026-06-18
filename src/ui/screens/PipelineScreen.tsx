@@ -10,6 +10,7 @@ import { MODEL_CATALOG } from '../../models/catalog.js';
 import { buildDefaultSteps } from '../../pipeline/steps.js';
 import type { PipelineRun, PipelineStep, AgentRole } from '../../types/index.js';
 import type { PipelineEvent } from '../../types/events.js';
+import type { PlannerOutput } from '../../agents/types.js';
 import {
   AGENT_CLASS_SHORT,
   AGENT_FLAVOR_TEXT,
@@ -175,6 +176,62 @@ function ModelPicker({ role, currentModelId, onSelect, onCancel }: ModelPickerPr
   );
 }
 
+// ─── PlanReviewPanel ──────────────────────────────────────────────────────────
+
+interface PlanReviewSummary {
+  architecture: string;
+  tasks: number;
+  estimatedFiles: string[];
+  risks: string[];
+}
+
+function PlanReviewPanel({
+  summary,
+  onDecision,
+}: {
+  summary: PlanReviewSummary;
+  onDecision: (v: 'approve' | 'reject') => void;
+}) {
+  useInput((input, key) => {
+    if (key.return || input === 'y' || input === 'Y') onDecision('approve');
+    if (input === 'r' || input === 'R' || key.escape) onDecision('reject');
+  });
+
+  const fileList = summary.estimatedFiles.slice(0, 5).join(', ');
+  const fileOverflow =
+    summary.estimatedFiles.length > 5 ? ` +${String(summary.estimatedFiles.length - 5)} more` : '';
+
+  return (
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      borderColor="yellow"
+      paddingX={2}
+      paddingY={1}
+      marginTop={1}
+      gap={1}
+    >
+      <Text color="yellow" bold>
+        [ PLANNER ] — Review plan before Dev runs
+      </Text>
+      <Text color="white">{summary.architecture}</Text>
+      <Text color="gray">
+        Tasks: {String(summary.tasks)} · Files: {fileList}
+        {fileOverflow}
+      </Text>
+      {summary.risks.length > 0 && <Text color={COPPER}>Risks: {summary.risks.join(' · ')}</Text>}
+      <Box gap={3} marginTop={1}>
+        <Text>
+          <Text color="yellow">[↵/y]</Text> approve → launch Dev
+        </Text>
+        <Text>
+          <Text color="yellow">[r]</Text> reject → abort
+        </Text>
+      </Box>
+    </Box>
+  );
+}
+
 // ─── Pipeline screen ──────────────────────────────────────────────────────────
 
 interface PipelineScreenProps {
@@ -211,13 +268,31 @@ export function PipelineScreen({
   const [currentIteration, setCurrentIteration] = useState(1);
   const [maxIterations, setMaxIterations] = useState(2);
   const [initiative, setInitiative] = useState<number | undefined>(undefined);
+  const [pendingReview, setPendingReview] = useState<{
+    resolve: (v: 'approve' | 'reject') => void;
+    summary: PlanReviewSummary;
+  } | null>(null);
 
   useEffect(() => {
     onStepsChange?.(steps);
   }, [steps]);
 
+  const onPlanReview = (plan: PlannerOutput): Promise<'approve' | 'reject'> =>
+    new Promise((resolve) => {
+      setPendingReview({
+        resolve,
+        summary: {
+          architecture: plan.architecture,
+          tasks: plan.tasks.length,
+          estimatedFiles: plan.estimatedFiles,
+          risks: plan.risks,
+        },
+      });
+    });
+
   useInput((input, key) => {
     if (showPicker) return; // handled inside ModelPicker
+    if (pendingReview !== null) return; // handled inside PlanReviewPanel
     if (isRunning) return; // lock input while pipeline is executing
 
     if (input === 'q') app.exit();
@@ -227,15 +302,11 @@ export function PipelineScreen({
     if (key.return) {
       setInitiative(Math.floor(Math.random() * 20) + 1);
       setIsRunning(true);
-      const override =
-        (activeSkillIds?.length ?? 0) > 0 || (activePluginIds?.length ?? 0) > 0
-          ? {
-              ...(activeSkillIds && activeSkillIds.length > 0 ? { skillIds: activeSkillIds } : {}),
-              ...(activePluginIds && activePluginIds.length > 0
-                ? { pluginIds: activePluginIds }
-                : {}),
-            }
-          : undefined;
+      const override: Parameters<typeof orchestrator.run>[4] = {
+        ...(activeSkillIds && activeSkillIds.length > 0 ? { skillIds: activeSkillIds } : {}),
+        ...(activePluginIds && activePluginIds.length > 0 ? { pluginIds: activePluginIds } : {}),
+        onPlanReview,
+      };
       const onUpdate = (updatedStep: PipelineStep) => {
         setSteps((prev) => prev.map((s) => (s.id === updatedStep.id ? updatedStep : s)));
       };
@@ -256,6 +327,7 @@ export function PipelineScreen({
         })
         .finally(() => {
           setIsRunning(false);
+          setPendingReview(null);
         });
     }
   });
@@ -353,6 +425,20 @@ export function PipelineScreen({
             onSelect={handleModelSelect}
             onCancel={() => {
               setShowPicker(false);
+            }}
+          />
+        </Box>
+      )}
+
+      {/* Plan review overlay — shown when Planner completes and awaits human approval */}
+      {pendingReview !== null && (
+        <Box paddingX={1}>
+          <PlanReviewPanel
+            summary={pendingReview.summary}
+            onDecision={(v) => {
+              const resolve = pendingReview.resolve;
+              setPendingReview(null);
+              resolve(v);
             }}
           />
         </Box>
