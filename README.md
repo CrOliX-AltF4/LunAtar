@@ -2,7 +2,7 @@
 
 # ◆ Lun'Ira
 
-[![Version](https://img.shields.io/npm/v/lunira?style=flat-square&color=C8A415)](https://www.npmjs.com/package/lunira)
+[![Version](https://img.shields.io/npm/v/@crolix-altf4/lunira?style=flat-square&color=C8A415)](https://www.npmjs.com/package/@crolix-altf4/lunira)
 [![License](https://img.shields.io/badge/license-MIT-333333?style=flat-square)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/CrOliX-AltF4/LunIra/ci.yml?style=flat-square&label=CI)](https://github.com/CrOliX-AltF4/LunIra/actions)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-555555?style=flat-square)](.)
@@ -24,7 +24,7 @@ _A multi-agent AI pipeline CLI. Feed the forge a plain-text intent — refined, 
 ## Quick start
 
 ```bash
-npm install -g lunira
+npm install -g @crolix-altf4/lunira
 lunira               # the forge opens — setup runs automatically on first launch
 ```
 
