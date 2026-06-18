@@ -33,9 +33,9 @@ describe('readmeMd', () => {
     expect(readme).toContain('# my-project');
   });
 
-  it('includes lunatar run usage', () => {
+  it('includes lunira run usage', () => {
     const readme = readmeMd('my-project', 'cli');
-    expect(readme).toContain('lunatar run');
+    expect(readme).toContain('lunira run');
   });
 });
 
@@ -45,13 +45,13 @@ describe('buildGuidance', () => {
     expect(msg).toContain('cd my-proj');
   });
 
-  it('mentions lunatar setup', () => {
+  it('mentions lunira setup', () => {
     const msg = buildGuidance('my-proj', 'cli');
-    expect(msg).toContain('lunatar setup');
+    expect(msg).toContain('lunira setup');
   });
 
-  it('mentions lunatar run', () => {
+  it('mentions lunira run', () => {
     const msg = buildGuidance('my-proj', 'cli');
-    expect(msg).toContain('lunatar run');
+    expect(msg).toContain('lunira run');
   });
 });
