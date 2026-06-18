@@ -126,8 +126,8 @@ function dryRun(intent: string | undefined, skipRoles: ReadonlySet<AgentRole>): 
   const steps = buildDefaultSteps(skipRoles);
 
   const header = intent
-    ? `lunatar — dry run for: "${intent}"`
-    : 'lunatar — dry run (no intent given)';
+    ? `lunira — dry run for: "${intent}"`
+    : 'lunira — dry run (no intent given)';
   process.stdout.write(`\n${header}\n\n`);
 
   const COL = { role: 16, model: 22, provider: 10, tokens: 16, cost: 10 };
@@ -180,7 +180,7 @@ function dryRun(intent: string | undefined, skipRoles: ReadonlySet<AgentRole>): 
 
   if (intent) {
     const skipFlag = skipRoles.size > 0 ? ` --skip ${[...skipRoles].join(',')}` : '';
-    process.stdout.write(`\n  Run with: lunatar run "${intent}"${skipFlag}\n`);
+    process.stdout.write(`\n  Run with: lunira run "${intent}"${skipFlag}\n`);
   }
 
   process.stdout.write('\n');
@@ -231,7 +231,7 @@ async function headlessRun(
     .join(', ');
 
   printBanner();
-  process.stderr.write(`lunatar — running pipeline: "${intent}"\n`);
+  process.stderr.write(`lunira — running pipeline: "${intent}"\n`);
   if (skippedNames) process.stderr.write(`Skipping: ${skippedNames}\n`);
   process.stderr.write('\n');
 
@@ -349,7 +349,7 @@ async function headlessRun(
 export async function runCommand(options: RunOptions): Promise<void> {
   // ── Banner suppression ──────────────────────────────────────────────────────
   if (options.noBanner) {
-    process.env['LUNATAR_NO_BANNER'] = '1';
+    process.env['LUNIRA_NO_BANNER'] = '1';
   }
 
   // ── Resolve skip roles ──────────────────────────────────────────────────────
@@ -404,7 +404,7 @@ export async function runCommand(options: RunOptions): Promise<void> {
   // ── Validate --model and --provider ────────────────────────────────────────
   if (options.model && !getModelById(options.model)) {
     process.stderr.write(
-      `Error: unknown model "${options.model}". Run "lunatar catalog" to see available models.\n`,
+      `Error: unknown model "${options.model}". Run "lunira catalog" to see available models.\n`,
     );
     process.exit(1);
   }
@@ -452,7 +452,7 @@ export async function runCommand(options: RunOptions): Promise<void> {
   if (options.json || options.output || options.apply) {
     if (!resolvedIntent) {
       process.stderr.write(
-        'Error: --json / --output / --apply requires an intent argument. Example: lunatar run "build a REST API" --apply\n',
+        'Error: --json / --output / --apply requires an intent argument. Example: lunira run "build a REST API" --apply\n',
       );
       process.exit(1);
       return;

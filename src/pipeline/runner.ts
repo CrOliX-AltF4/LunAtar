@@ -30,7 +30,7 @@ export interface PipelinePreload {
 }
 
 // ─── Pipeline override ────────────────────────────────────────────────────────
-// TUI in-session selection that takes precedence over lunatar.config.json.
+// TUI in-session selection that takes precedence over lunira.config.json.
 
 export interface PipelineOverride {
   skillIds?: string[];
