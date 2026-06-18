@@ -17,7 +17,15 @@ import { printBanner } from '../banner.js';
 
 // ─── Shared role labels for progress output ───────────────────────────────────
 
-const VALID_PROVIDERS: ReadonlySet<string> = new Set(['groq', 'gemini', 'claude', 'openai', 'nim']);
+const VALID_PROVIDERS: ReadonlySet<string> = new Set([
+  'groq',
+  'gemini',
+  'claude',
+  'openai',
+  'nim',
+  'openrouter',
+  'ollama',
+]);
 
 const ROLE_LABELS: Record<string, string> = {
   po: 'Product Owner',

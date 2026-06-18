@@ -97,7 +97,7 @@ export async function runPipeline(
   let skillRegistry: SkillRegistry;
   let pluginRegistry: PluginRegistry;
   try {
-    projectConfig = await loadProjectConfig(process.cwd());
+    projectConfig = await loadProjectConfig(preload?.cwd ?? process.cwd());
 
     const externalSkillPaths = projectConfig.skills.external ?? [];
     const externalPluginPaths = projectConfig.plugins.external ?? [];
