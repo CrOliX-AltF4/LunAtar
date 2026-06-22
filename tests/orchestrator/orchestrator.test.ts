@@ -57,6 +57,7 @@ describe('orchestrator.run()', () => {
       undefined,
       undefined,
       undefined,
+      undefined,
     );
   });
 
@@ -67,6 +68,7 @@ describe('orchestrator.run()', () => {
       'Build a CLI',
       STEPS,
       onUpdate,
+      undefined,
       undefined,
       undefined,
       undefined,
@@ -83,6 +85,7 @@ describe('orchestrator.run()', () => {
       undefined,
       undefined,
       onEvent,
+      undefined,
     );
   });
 });

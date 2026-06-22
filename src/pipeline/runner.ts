@@ -68,6 +68,7 @@ export async function runPipeline(
   preload?: PipelinePreload,
   override?: PipelineOverride,
   onEvent?: (event: PipelineEvent) => void,
+  signal?: AbortSignal,
 ): Promise<PipelineRun> {
   const run: PipelineRun = {
     id: randomUUID(),
@@ -158,6 +159,13 @@ export async function runPipeline(
     keepIterating = false;
 
     for (let i = 0; i < run.steps.length; i++) {
+      if (signal?.aborted) {
+        skipRemaining(run, i, patch);
+        run.status = 'aborted';
+        keepIterating = false;
+        break;
+      }
+
       const step = run.steps[i];
       if (!step) continue;
 
