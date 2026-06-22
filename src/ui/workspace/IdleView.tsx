@@ -51,6 +51,31 @@ export function IdleView() {
           <Text color="gray" dimColor>
             type <Text color="yellow">/</Text> for commands
           </Text>
+          <Text>
+            <Text color={GOLD} dimColor>
+              /history
+            </Text>
+            <Text color="gray"> · </Text>
+            <Text color={GOLD} dimColor>
+              /arsenal
+            </Text>
+            <Text color="gray"> · </Text>
+            <Text color={GOLD} dimColor>
+              /setup
+            </Text>
+            <Text color="gray"> · </Text>
+            <Text color={GOLD} dimColor>
+              /costs
+            </Text>
+            <Text color="gray"> · </Text>
+            <Text color={GOLD} dimColor>
+              /demo
+            </Text>
+            <Text color="gray"> · </Text>
+            <Text color={GOLD} dimColor>
+              /ask
+            </Text>
+          </Text>
         </Box>
       </Box>
     </Box>
