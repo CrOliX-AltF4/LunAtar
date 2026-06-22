@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Text, useStdout } from 'ink';
 import { TitleBar } from './TitleBar.js';
 import { PanelProvider } from './PanelContext.js';
@@ -52,6 +52,7 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
   const [runCostUsd, setRunCostUsd] = useState<number>(0);
   const [isDemo, setIsDemo] = useState(false);
   const [saveToast, setSaveToast] = useState<string | null>(null);
+  const saveToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Companion state ─────────────────────────────────────────────────────────
   const [companionState, setCompanionState] = useState<CompanionState>('idle');
@@ -88,7 +89,8 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
         ? `$${(run.totalCostUsd * 1000).toFixed(2)}m`
         : `$${run.totalCostUsd.toFixed(4)}`;
     setSaveToast(`Run saved · ${cost}`);
-    setTimeout(() => {
+    if (saveToastTimerRef.current !== null) clearTimeout(saveToastTimerRef.current);
+    saveToastTimerRef.current = setTimeout(() => {
       setSaveToast(null);
     }, 3000);
   };

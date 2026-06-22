@@ -44,9 +44,13 @@ export function ConfigScreen({ onConfirm, onBack, onCompanionChange }: ConfigScr
 
   // Load previously saved arsenal selection on mount
   useEffect(() => {
+    let cancelled = false;
     void loadArsenal().then(({ skillIds, pluginIds }) => {
-      setActiveIds(new Set([...skillIds, ...pluginIds]));
+      if (!cancelled) setActiveIds(new Set([...skillIds, ...pluginIds]));
     });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const togglePlugin = (plugin: Plugin) => {
@@ -101,7 +105,11 @@ export function ConfigScreen({ onConfirm, onBack, onCompanionChange }: ConfigScr
         .filter((x) => x.kind === 'plugin' && activeIds.has(x.item.id))
         .map((x) => x.item.id);
       // Persist for next session (fire-and-forget — don't block UI)
-      void saveArsenal({ skillIds: activeSkillIds, pluginIds: activePluginIds });
+      saveArsenal({ skillIds: activeSkillIds, pluginIds: activePluginIds }).catch(
+        (err: unknown) => {
+          process.stderr.write(`[arsenal] Failed to persist selection: ${String(err)}\n`);
+        },
+      );
       onConfirm(activeSkillIds, activePluginIds);
     }
     if (key.escape) onBack();

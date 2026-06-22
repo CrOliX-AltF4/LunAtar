@@ -39,7 +39,7 @@ describe('resolveCommand', () => {
     expect(r).toEqual({ cmd: 'history', args: '' });
   });
 
-  it('returns null when multiple matches and no picker selection', () => {
+  it('resolves single unambiguous prefix match without picker selection', () => {
     // '/s' matches /setup — wait, only one matches. Use '/a' which matches /arsenal only.
     const r = resolveCommand('/a', CMDS, null, 10);
     expect(r).toEqual({ cmd: 'arsenal', args: '' });
