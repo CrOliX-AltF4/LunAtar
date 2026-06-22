@@ -7,14 +7,16 @@ import {
 import type { ProviderName } from '../../types/index.js';
 
 const VALID_PROVIDERS: ProviderName[] = [
-  'openrouter',
   'groq',
   'gemini',
   'claude',
   'openai',
+  'openrouter',
   'nim',
   'ollama',
 ];
+
+const VALID_PROVIDERS_STR = 'groq, gemini, claude, openai, openrouter, nim, ollama';
 const PROVIDER_ENV: Record<ProviderName, string> = {
   openrouter: 'OPENROUTER_API_KEY',
   groq: 'GROQ_API_KEY',
@@ -44,7 +46,10 @@ export function configCommand(action: string, key: string, value?: string): void
     case 'get': {
       const parsed = parseKey(key);
       if (!parsed) {
-        console.error(`Invalid key "${key}". Use format: <provider>.apiKey`);
+        console.error(
+          `Invalid key "${key}". Valid providers: ${VALID_PROVIDERS_STR}\n` +
+            `Use format: <provider>.apiKey (e.g. groq.apiKey)`,
+        );
         process.exit(1);
       }
       const apiKey = getApiKey(parsed.provider);
@@ -64,7 +69,10 @@ export function configCommand(action: string, key: string, value?: string): void
     case 'set': {
       const parsed = parseKey(key);
       if (!parsed) {
-        console.error(`Invalid key "${key}". Use format: <provider>.apiKey`);
+        console.error(
+          `Invalid key "${key}". Valid providers: ${VALID_PROVIDERS_STR}\n` +
+            `Use format: <provider>.apiKey (e.g. groq.apiKey)`,
+        );
         process.exit(1);
       }
       if (!value) {
@@ -84,7 +92,10 @@ export function configCommand(action: string, key: string, value?: string): void
     case 'unset': {
       const parsed = parseKey(key);
       if (!parsed) {
-        console.error(`Invalid key "${key}". Use format: <provider>.apiKey`);
+        console.error(
+          `Invalid key "${key}". Valid providers: ${VALID_PROVIDERS_STR}\n` +
+            `Use format: <provider>.apiKey (e.g. groq.apiKey)`,
+        );
         process.exit(1);
       }
       removeApiKey(parsed.provider);
