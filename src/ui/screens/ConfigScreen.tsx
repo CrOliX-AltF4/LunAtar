@@ -9,6 +9,7 @@ import { PluginRegistry } from '../../plugins/registry.js';
 import type { Skill } from '../../skills/types.js';
 import type { Plugin } from '../../plugins/types.js';
 import { isPermitted, grantPermission } from '../../plugins/permissions.js';
+import { loadArsenal, saveArsenal } from '../../storage/index.js';
 
 interface ConfigScreenProps {
   onConfirm: (activeSkillIds: string[], activePluginIds: string[]) => void;
@@ -39,6 +40,13 @@ export function ConfigScreen({ onConfirm, onBack, onCompanionChange }: ConfigScr
 
   useEffect(() => {
     onCompanionChange?.({ state: 'thinking', poSpeech: 'Pesant ton arsenal...' });
+  }, []);
+
+  // Load previously saved arsenal selection on mount
+  useEffect(() => {
+    void loadArsenal().then(({ skillIds, pluginIds }) => {
+      setActiveIds(new Set([...skillIds, ...pluginIds]));
+    });
   }, []);
 
   const togglePlugin = (plugin: Plugin) => {
@@ -92,6 +100,8 @@ export function ConfigScreen({ onConfirm, onBack, onCompanionChange }: ConfigScr
       const activePluginIds = allItems
         .filter((x) => x.kind === 'plugin' && activeIds.has(x.item.id))
         .map((x) => x.item.id);
+      // Persist for next session (fire-and-forget — don't block UI)
+      void saveArsenal({ skillIds: activeSkillIds, pluginIds: activePluginIds });
       onConfirm(activeSkillIds, activePluginIds);
     }
     if (key.escape) onBack();
