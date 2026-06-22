@@ -246,7 +246,7 @@ interface PipelineScreenProps {
 
 const KEYBINDINGS = [
   { key: '↑↓', label: 'navigate' },
-  { key: 'm', label: 'swap rune' },
+  { key: 'm', label: 'change model' },
   { key: '↵', label: 'fire the forge' },
   { key: 'q', label: 'abandon' },
 ];
