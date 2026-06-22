@@ -46,11 +46,11 @@ function truncate(str: string, max: number): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export interface HistoryScreenProps {
-  onRerun?: (intent: string) => void;
+  // onRerun REMOVED — history is a read-only log
   onBack?: () => void;
 }
 
-export function HistoryScreen({ onRerun, onBack }: HistoryScreenProps) {
+export function HistoryScreen({ onBack }: HistoryScreenProps) {
   const [runs, setRuns] = useState<PipelineRun[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -77,10 +77,6 @@ export function HistoryScreen({ onRerun, onBack }: HistoryScreenProps) {
     if (key.pageUp) setSelectedIndex((i) => Math.max(0, i - 10));
     if (key.pageDown) setSelectedIndex((i) => Math.min(runs.length - 1, i + 10));
     if (key.return) setMode('detail');
-    if (input === 'r') {
-      const run = runs[selectedIndex];
-      if (run && onRerun) onRerun(run.intent);
-    }
     if (input === 'q' || key.escape) {
       if (onBack) onBack();
     }
@@ -160,8 +156,11 @@ export function HistoryScreen({ onRerun, onBack }: HistoryScreenProps) {
         </Text>
       </Box>
       <Text color="gray" dimColor>
-        {'↑↓'} navigate · <Text color="yellow">Enter</Text> inspect · <Text color="yellow">r</Text>{' '}
-        reforge · <Text color="yellow">q / Esc</Text> back
+        {'↑↓'} navigate · <Text color="yellow">Enter</Text> inspect ·{' '}
+        <Text color="yellow">q / Esc</Text> back{' '}
+        <Text color="gray" dimColor>
+          · read-only log
+        </Text>
       </Text>
     </Box>
   );

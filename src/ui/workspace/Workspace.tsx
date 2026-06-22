@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, useStdout } from 'ink';
+import { Box, Text, useStdout } from 'ink';
 import { TitleBar } from './TitleBar.js';
 import { PanelProvider } from './PanelContext.js';
 import { IdleView } from './IdleView.js';
@@ -51,6 +51,7 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
   const [runTokens, setRunTokens] = useState<number>(0);
   const [runCostUsd, setRunCostUsd] = useState<number>(0);
   const [isDemo, setIsDemo] = useState(false);
+  const [saveToast, setSaveToast] = useState<string | null>(null);
 
   // ── Companion state ─────────────────────────────────────────────────────────
   const [companionState, setCompanionState] = useState<CompanionState>('idle');
@@ -81,6 +82,15 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
     setCompletedRun(run);
     setView('results');
     setCompanionState('done');
+    // Show save confirmation for 3 seconds
+    const cost =
+      run.totalCostUsd < 0.001
+        ? `$${(run.totalCostUsd * 1000).toFixed(2)}m`
+        : `$${run.totalCostUsd.toFixed(4)}`;
+    setSaveToast(`Run saved · ${cost}`);
+    setTimeout(() => {
+      setSaveToast(null);
+    }, 3000);
   };
 
   const handleStepsChange = (steps: PipelineStep[]) => {
@@ -198,10 +208,6 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
       case 'history':
         return (
           <HistoryScreen
-            onRerun={(intentStr) => {
-              setIntent(intentStr);
-              setView('pipeline');
-            }}
             onBack={() => {
               setView('prompt');
             }}
@@ -232,6 +238,13 @@ export function Workspace({ initialIntent, skipRoles, startOnWelcome = false }: 
       />
       <PanelProvider value={{ cols }}>
         <Box flexDirection="column">{renderView()}</Box>
+        {saveToast !== null && (
+          <Box paddingX={2} paddingY={0}>
+            <Text color="green" dimColor>
+              ✓ {saveToast}
+            </Text>
+          </Box>
+        )}
         <IncantationBar
           key={view === 'prompt' ? 'prompt' : 'other'}
           locked={view !== 'prompt'}

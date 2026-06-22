@@ -1,7 +1,6 @@
 import { render } from 'ink';
 import React from 'react';
 import { HistoryScreen } from '../../ui/screens/HistoryScreen.js';
-import { Workspace } from '../../ui/workspace/Workspace.js';
 import { listRuns } from '../../storage/index.js';
 
 export async function historyCommand(
@@ -14,21 +13,6 @@ export async function historyCommand(
     return;
   }
 
-  const state: { rerunIntent: string | null } = { rerunIntent: null };
-
-  const { waitUntilExit } = render(
-    React.createElement(HistoryScreen, {
-      onRerun: (intent: string) => {
-        state.rerunIntent = intent;
-      },
-    }),
-  );
+  const { waitUntilExit } = render(React.createElement(HistoryScreen, {}));
   await waitUntilExit();
-
-  if (state.rerunIntent !== null) {
-    const { waitUntilExit: waitApp } = render(
-      React.createElement(Workspace, { initialIntent: state.rerunIntent }),
-    );
-    await waitApp();
-  }
 }
