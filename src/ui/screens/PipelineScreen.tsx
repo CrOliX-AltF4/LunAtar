@@ -244,11 +244,17 @@ interface PipelineScreenProps {
   isDemo?: boolean;
 }
 
-const KEYBINDINGS = [
+const KEYBINDINGS_IDLE = [
   { key: '↑↓', label: 'navigate' },
   { key: 'm', label: 'change model' },
   { key: '↵', label: 'fire the forge' },
   { key: 'q', label: 'abandon' },
+];
+
+const KEYBINDINGS_RUNNING = [
+  { key: '↑↓', label: 'navigate' },
+  { key: 'm', label: 'change model' },
+  { key: 'q', label: 'cancel' },
 ];
 
 export function PipelineScreen({
@@ -444,7 +450,7 @@ export function PipelineScreen({
         </Box>
       )}
 
-      <Footer steps={steps} keybindings={KEYBINDINGS} />
+      <Footer steps={steps} keybindings={isRunning ? KEYBINDINGS_RUNNING : KEYBINDINGS_IDLE} />
     </Box>
   );
 }

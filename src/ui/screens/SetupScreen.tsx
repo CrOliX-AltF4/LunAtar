@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
 import TextInput from 'ink-text-input';
 import { Separator } from '../components/Separator.js';
@@ -91,6 +91,15 @@ export function SetupScreen({ onComplete, onBack }: SetupScreenProps) {
     () => new Set(PROVIDERS.map((p) => p.name).filter((n) => !!getApiKey(n))),
   );
 
+  const [savedProvider, setSavedProvider] = useState<string | null>(null);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current !== null) clearTimeout(savedTimerRef.current);
+    };
+  }, []);
+
   const focusedProvider = PROVIDERS[focusedIndex];
   const hasOne = configured.size > 0;
 
@@ -118,15 +127,25 @@ export function SetupScreen({ onComplete, onBack }: SetupScreenProps) {
 
   const handleSubmit = (value: string) => {
     const trimmed = value.trim();
+    let saved = false;
     if (focusedProvider?.name === 'ollama') {
       // Ollama needs no API key — mark as acknowledged
       setConfigured((prev) => new Set([...prev, 'ollama']));
+      saved = true;
     } else if (trimmed && focusedProvider) {
       setApiKey(focusedProvider.name, trimmed);
       setConfigured((prev) => new Set([...prev, focusedProvider.name]));
+      saved = true;
     }
     setInputValue('');
     setEntering(false);
+    if (saved && focusedProvider) {
+      setSavedProvider(focusedProvider.name);
+      if (savedTimerRef.current !== null) clearTimeout(savedTimerRef.current);
+      savedTimerRef.current = setTimeout(() => {
+        setSavedProvider(null);
+      }, 2000);
+    }
   };
 
   return (
@@ -158,6 +177,11 @@ export function SetupScreen({ onComplete, onBack }: SetupScreenProps) {
                       {p.label}
                     </Text>
                   </Box>
+                  {savedProvider === p.name && (
+                    <Text color="green" bold>
+                      ✓ Saved
+                    </Text>
+                  )}
                   <Text color="gray" dimColor={!isFocused}>
                     {p.url}
                   </Text>
