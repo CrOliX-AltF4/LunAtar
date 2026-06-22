@@ -16,7 +16,7 @@ const VALID_PROVIDERS: ProviderName[] = [
   'ollama',
 ];
 
-const VALID_PROVIDERS_STR = 'groq, gemini, claude, openai, openrouter, nim, ollama';
+const VALID_PROVIDERS_STR = VALID_PROVIDERS.join(', ');
 const PROVIDER_ENV: Record<ProviderName, string> = {
   openrouter: 'OPENROUTER_API_KEY',
   groq: 'GROQ_API_KEY',

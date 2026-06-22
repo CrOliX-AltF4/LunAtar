@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import { ORACLE_MESSAGES, GOLD } from '../theme.js';
 import { Separator } from '../components/Separator.js';
+import { SLASH_COMMANDS } from './commandMatcher.js';
 import { fullSpriteLines as f0 } from '../components/mascot-frame-0.js';
 import { fullSpriteLines as f1 } from '../components/mascot-frame-1.js';
 import { fullSpriteLines as f2 } from '../components/mascot-frame-2.js';
@@ -52,29 +53,14 @@ export function IdleView() {
             type <Text color="yellow">/</Text> for commands
           </Text>
           <Text>
-            <Text color={GOLD} dimColor>
-              /history
-            </Text>
-            <Text color="gray"> · </Text>
-            <Text color={GOLD} dimColor>
-              /arsenal
-            </Text>
-            <Text color="gray"> · </Text>
-            <Text color={GOLD} dimColor>
-              /setup
-            </Text>
-            <Text color="gray"> · </Text>
-            <Text color={GOLD} dimColor>
-              /costs
-            </Text>
-            <Text color="gray"> · </Text>
-            <Text color={GOLD} dimColor>
-              /demo
-            </Text>
-            <Text color="gray"> · </Text>
-            <Text color={GOLD} dimColor>
-              /ask
-            </Text>
+            {SLASH_COMMANDS.map((c, i) => (
+              <React.Fragment key={c.cmd}>
+                <Text color={GOLD} dimColor>
+                  {c.cmd}
+                </Text>
+                {i < SLASH_COMMANDS.length - 1 && <Text color="gray"> · </Text>}
+              </React.Fragment>
+            ))}
           </Text>
         </Box>
       </Box>

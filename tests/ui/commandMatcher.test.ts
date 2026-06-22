@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { matchCommands, resolveCommand } from '../../src/ui/workspace/commandMatcher.js';
+import {
+  matchCommands,
+  resolveCommand,
+  SLASH_COMMANDS,
+} from '../../src/ui/workspace/commandMatcher.js';
 
 const CMDS = [
   { cmd: '/history', desc: 'browse past runs' },
@@ -30,6 +34,12 @@ describe('matchCommands', () => {
 
   it('returns empty array when input does not start with /', () => {
     expect(matchCommands('history', CMDS, 10)).toHaveLength(0);
+  });
+});
+
+describe('SLASH_COMMANDS', () => {
+  it('should include /ask in SLASH_COMMANDS', () => {
+    expect(SLASH_COMMANDS.some((c) => c.cmd === '/ask')).toBe(true);
   });
 });
 
